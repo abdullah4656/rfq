@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <style>
+    body { font-family: 'Georgia', serif; background:#111; color:#eee; }
+    .box { background:#222; padding:20px; border-radius:8px; }
+    h2 { color:#d4af37; }
+    .total { font-size:20px; color:#d4af37; margin-top:20px; }
+    img { border-radius:6px; margin-top:5px; }
+  </style>
+</head>
+<body>
+  <div class="box">
+    <h2>RFQ Summary - Marge Carson</h2>
+    <p><strong>Customer:</strong> {{ rfq.customer_name }} ({{ rfq.customer_email }})</p>
+    <p><strong>Product:</strong> {{ rfq.product_name }}</p>
+
+    <h3>Pricing Breakdown</h3>
+    <p>Base Price: ${{ base_price }}</p>
+    {% if fabric %}<p>Fabric: {{ fabric.title }} (+ ${{ fabric_price }})</p>{% endif %}
+    {% if trim %}<p>Trim: {{ trim.title }} (+ ${{ trim_price }})</p>{% endif %}
+    <p>Accessories:
+      {% for a in accessories %}
+        <br>- {{ a.title }} (+ ${{ a.upcharge_cents|divisibleby:100 }})
+      {% empty %}
+        None
+      {% endfor %}
+    </p>
+    <div class="total">Grand Total: ${{ grand_total }}</div>
+  </div>
+</body>
+</html>

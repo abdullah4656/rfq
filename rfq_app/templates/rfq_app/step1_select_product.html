@@ -1,0 +1,39 @@
+{% extends "rfq_app/base.html" %}
+{% block content %}
+{% include "rfq_app/stepper.html" with step=1 %}
+
+<h2 class="mb-4">Select a Product</h2>
+
+<!-- Search Bar -->
+<form method="get" class="mb-4 d-flex">
+  <input type="text" name="q" value="{{ query }}" class="form-control me-2" placeholder="Search products...">
+  <button type="submit" class="btn btn-gold">Search</button>
+</form>
+
+<form method="POST" class="row g-4">
+  {% csrf_token %}
+  {% for p in products %}
+    <div class="col-md-4 col-12">
+      <div class="card h-100 text-center p-3">
+        {% if p.image %}
+          <img src="{{ p.image }}" class="card-img-top" alt="{{ p.title }}" 
+               style="max-height:200px; object-fit:contain;">
+        {% endif %}
+        <div class="card-body">
+          <label>
+            <input type="radio" name="product" value="{{ p.id }}|{{ p.title }}" required>
+            <h5 class="card-title">{{ p.title }}</h5>
+            <p class="card-text">Price: ${{ p.price }}</p>
+          </label>
+        </div>
+      </div>
+    </div>
+  {% empty %}
+    <p>No products found.</p>
+  {% endfor %}
+
+  <div class="col-12 sticky-next">
+    <button type="submit" class="btn btn-gold">Next →</button>
+  </div>
+</form>
+{% endblock %}

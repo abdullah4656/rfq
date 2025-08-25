@@ -1,0 +1,44 @@
+{% extends "rfq_app/base.html" %}
+{% block content %}
+{% include "rfq_app/stepper.html" with step=5 %}
+
+<div class="row">
+  <div class="col-md-8">
+    <h2 class="mb-4">Enter Your Details</h2>
+    <form method="POST">
+      {% csrf_token %}
+      <div class="mb-3">
+        <label class="form-label">Name</label>
+        <input type="text" class="form-control" name="name" required>
+      </div>
+      <div class="mb-3">
+        <label class="form-label">Email</label>
+        <input type="email" class="form-control" name="email" required>
+      </div>
+      <div class="mb-3">
+        <label class="form-label">Notes</label>
+        <textarea class="form-control" name="notes" rows="3"></textarea>
+      </div>
+
+      <div class="sticky-next text-end">
+        <button type="submit" class="btn btn-gold">Submit RFQ</button>
+      </div>
+    </form>
+  </div>
+
+  <!-- Sticky Final Total -->
+  <div class="col-md-4">
+    <div class="rfq-total-box">
+      <h4>Price Breakdown</h4>
+      <p>Base Price: ${{ base_price }}</p>
+      {% if fabric %}<p>Fabric: +${{ fabric_price }}</p>{% endif %}
+      {% if trim %}<p>Trim: +${{ trim_price }}</p>{% endif %}
+      {% if accessories %}
+        <p>Accessories: +${{ accessories_total }}</p>
+      {% endif %}
+      <hr>
+      <p class="fs-4"><strong>Total: ${{ grand_total }}</strong></p>
+    </div>
+  </div>
+</div>
+{% endblock %}
