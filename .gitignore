@@ -1,2 +1,3 @@
 # Ignore secrets
 p.py
+.env
