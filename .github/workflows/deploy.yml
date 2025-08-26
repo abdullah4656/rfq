@@ -33,11 +33,11 @@ jobs:
             # Create virtual environment if missing
             if [ ! -d "venv" ]; then
               echo "🔹 Creating virtual environment..."
-              python3 -m venv venv
+              python3 -m venv env
             fi
 
             # Activate venv
-            source venv/bin/activate
+            source env/bin/activate
 
             # Upgrade pip and install requirements
             pip install --upgrade pip
