@@ -33,11 +33,11 @@ jobs:
             # Create virtual environment if missing
             if [ ! -d "venv" ]; then
               echo "🔹 Creating virtual environment..."
-              python3 -m venv env
+              python3 -m venv venv
             fi
 
             # Activate venv
-            source env/bin/activate
+            source venv/bin/activate
 
             # Upgrade pip and install requirements
             pip install --upgrade pip
@@ -45,13 +45,13 @@ jobs:
              pip install xhtml2pdf python-dotenv
 
             # Django settings: ensure STATIC_ROOT exists
-            mkdir -p staticfiles
+            
 
             # Run migrations
             python manage.py migrate
 
             # Collect static files
-            python manage.py collectstatic --noinput
+            
 
             # Restart Gunicorn
             sudo systemctl restart gunicorn
