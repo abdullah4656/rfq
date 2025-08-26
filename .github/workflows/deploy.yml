@@ -1,4 +1,4 @@
-name: Deploy
+name: Deploy Django to EC2
 
 on:
   push:
@@ -10,10 +10,10 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout repo
+      - name: Checkout code
         uses: actions/checkout@v3
 
-      - name: Deploy to EC2
+      - name: Deploy via SSH
         uses: appleboy/ssh-action@v0.1.6
         with:
           host: ${{ secrets.EC2_HOST }}
@@ -26,28 +26,31 @@ jobs:
 
             cd /home/ubuntu/projectdir/rfq
 
-            # Update code
+            # Pull latest code
             git reset --hard
             git pull origin main
 
-            # Ensure venv dependencies exist
-            sudo apt update
-            sudo apt install -y python3-venv python3-pip
-
             # Create virtual environment if missing
             if [ ! -d "venv" ]; then
+              echo "🔹 Creating virtual environment..."
               python3 -m venv venv
             fi
 
-            # Activate virtual environment
+            # Activate venv
             source venv/bin/activate
 
-            # Install dependencies
+            # Upgrade pip and install requirements
             pip install --upgrade pip
             pip install -r requirements.txt
+            pip install python-dotenv
 
-            # Django tasks
+            # Django settings: ensure STATIC_ROOT exists
+            mkdir -p staticfiles
+
+            # Run migrations
             python manage.py migrate
+
+            # Collect static files
             python manage.py collectstatic --noinput
 
             # Restart Gunicorn
