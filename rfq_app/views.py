@@ -26,6 +26,36 @@ def safe_price(val):
         return int(val) / 100
     except (ValueError, TypeError):
         return 0
+import requests
+from .shopify_api import SHOPIFY_STORE_URL, headers
+
+def get_product_by_id(product_id):
+    """Fetch single product from Shopify"""
+    url = f"{SHOPIFY_STORE_URL}/admin/api/2025-01/products/{product_id}.json"
+    res = requests.get(url, headers=headers, timeout=10)
+    res.raise_for_status()
+    p = res.json()["product"]
+    return {
+        "id": str(p["id"]),
+        "title": p["title"],
+        "image": p["images"][0]["src"] if p.get("images") else "",
+        "price": p["variants"][0]["price"] if p.get("variants") else "N/A",
+    }
+
+def start_rfq(request):
+    product_id = request.GET.get("product_id")
+    if not product_id:
+        return redirect("step1_select_product")  # fallback if no product passed
+
+    product = get_product_by_id(product_id)
+
+    # Save selection in session
+    request.session["product_id"] = product["id"]
+    request.session["product"] = product["title"]
+
+    # Jump directly into fabrics step
+    return redirect("step2_fabrics")
+
 def step1_select_product(request):
     collection = RFQCollection.objects.first()
     products = []
