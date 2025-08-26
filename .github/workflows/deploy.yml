@@ -17,28 +17,46 @@ jobs:
         id: deploy
         uses: appleboy/ssh-action@v0.1.6
         with:
-          host: ${{ secrets.EC2_HOST }}
-          username: ${{ secrets.EC2_USER }}
-          key: ${{ secrets.EC2_SSH_KEY }}
+          host: ${{ secrets.EC2_HOST }}      # EC2 public IP
+          username: ${{ secrets.EC2_USER }}  # usually 'ubuntu'
+          key: ${{ secrets.EC2_SSH_KEY }}    # PRIVATE KEY CONTENT
           port: 22
           script: |
-            set -e  # Stop if any command fails
+            set -e  # Stop on any error
             echo "⏳ Starting deployment..."
+            
             cd /home/ubuntu/projectdir/rfq
+
+            # Update code from GitHub
             git reset --hard
             git pull origin main
+
+            # Create virtual environment if missing
+            if [ ! -d "venv" ]; then
+              echo "🔹 Creating virtual environment..."
+              python3 -m venv venv
+            fi
+
+            # Activate virtual environment
             source venv/bin/activate
+
+            # Install/update dependencies
+            pip install --upgrade pip
             pip install -r requirements.txt
+
+            # Django migrations and static files
             python manage.py migrate
             python manage.py collectstatic --noinput
+
+            # Restart Gunicorn
             sudo systemctl restart gunicorn
+
             echo "✅ Deployment completed successfully!"
 
       - name: Deployment Result
         run: |
-          if [ ${{ steps.deploy.outcome }} == 'success' ]; then
+          if [ "${{ steps.deploy.outcome }}" == 'success' ]; then
             echo "✅ Deployment succeeded!"
           else
             echo "❌ Deployment failed! Check workflow logs."
             exit 1
-          fi
