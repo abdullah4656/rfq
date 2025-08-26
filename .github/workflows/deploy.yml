@@ -1,4 +1,4 @@
-name: Deploy Django to EC2
+name: Deploy
 
 on:
   push:
@@ -10,7 +10,7 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout code
+      - name: Checkout repo
         uses: actions/checkout@v3
 
       - name: Deploy to EC2
@@ -18,36 +18,35 @@ jobs:
         with:
           host: ${{ secrets.EC2_HOST }}
           username: ${{ secrets.EC2_USER }}
-          key: ${{ secrets.EC2_KEY }}
+          key: ${{ secrets.EC2_SSH_KEY }}
           port: 22
           script: |
-            set -e  # Stop on any error
+            set -e
             echo "⏳ Starting deployment..."
 
             cd /home/ubuntu/projectdir/rfq
 
-            # Update code from GitHub
+            # Update code
             git reset --hard
             git pull origin main
 
-            # Ensure venv package is installed
+            # Ensure venv dependencies exist
             sudo apt update
             sudo apt install -y python3-venv python3-pip
 
             # Create virtual environment if missing
             if [ ! -d "venv" ]; then
-              echo "🔹 Creating virtual environment..."
               python3 -m venv venv
             fi
 
             # Activate virtual environment
             source venv/bin/activate
 
-            # Upgrade pip and install requirements
+            # Install dependencies
             pip install --upgrade pip
             pip install -r requirements.txt
 
-            # Django migrations and static files
+            # Django tasks
             python manage.py migrate
             python manage.py collectstatic --noinput
 
