@@ -1,39 +1,52 @@
 {% extends "rfq_app/base.html" %}
+
+{% block title %}Select Product - RFQ System{% endblock %}
+{% block progress_width %}10%{% endblock %}
+{% block progress_text %}Step 1 of 10 - Select Product{% endblock %}
+{% block progress_percent %}10% Complete{% endblock %} 
+{% block heading %}Select Your Product{% endblock %}
+
 {% block content %}
-{% include "rfq_app/stepper.html" with step=1 %}
-
-<h2 class="mb-4">Select a Product</h2>
-
-<!-- Search Bar -->
-<form method="get" class="mb-4 d-flex">
-  <input type="text" name="q" value="{{ query }}" class="form-control me-2" placeholder="Search products...">
-  <button type="submit" class="btn btn-gold">Search</button>
-</form>
-
-<form method="POST" class="row g-4">
-  {% csrf_token %}
-  {% for p in products %}
-    <div class="col-md-4 col-12">
-      <div class="card h-100 text-center p-3">
-        {% if p.image %}
-          <img src="{{ p.image }}" class="card-img-top" alt="{{ p.title }}" 
-               style="max-height:200px; object-fit:contain;">
-        {% endif %}
-        <div class="card-body">
-          <label>
-            <input type="radio" name="product" value="{{ p.id }}|{{ p.title }}" required>
-            <h5 class="card-title">{{ p.title }}</h5>
-            <p class="card-text">Price: ${{ p.price }}</p>
-          </label>
+<div class="row">
+    {% for product in products %}
+    <div class="col-md-4 mb-4">
+        <div class="card option-card h-100">
+            <img src="{{ product.image }}" class="card-img-top product-image" alt="{{ product.title }}">
+            <div class="card-body">
+                <h5 class="card-title">{{ product.title }}</h5>
+                <p class="card-text">Starting at ${{ product.price|floatformat:2 }}</p>
+            </div>
+            <div class="card-footer">
+                <form method="post" class="d-grid">
+                    {% csrf_token %}
+                    <input type="hidden" name="product_id" value="{{ product.id }}">
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-check"></i> Select This Product
+                    </button>
+                </form>
+            </div>
         </div>
-      </div>
     </div>
-  {% empty %}
-    <p>No products found.</p>
-  {% endfor %}
+    {% empty %}
+    <div class="col-12">
+        <div class="alert alert-warning">
+            <i class="fas fa-exclamation-triangle"></i> No products available at the moment.
+        </div>
+    </div>
+    {% endfor %}
+</div>
 
-  <div class="col-12 sticky-next">
-    <button type="submit" class="btn btn-gold">Next →</button>
-  </div>
-</form>
+<div class="row mt-4">
+    <div class="col-12">
+        <div class="card bg-info text-white">
+            <div class="card-body">
+                <h5 class="card-title"><i class="fas fa-info-circle"></i> How it works</h5>
+                <p class="card-text">
+                    Select a product to begin customizing. You'll be guided through fabric, size, 
+                    and other options to create your perfect piece of furniture.
+                </p>
+            </div>
+        </div>
+    </div>
+</div>
 {% endblock %}

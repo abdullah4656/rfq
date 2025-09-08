@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <style>
+        body { font-family: Arial, sans-serif; line-height: 1.6; color: #000; }
+        .container { width: 100%; }
+        .header { background: #cccccc; color: black; padding: 20px; text-align: center; }
+        .content { padding: 20px; }
+        .summary-table { width: 100%; border-collapse: collapse; margin: 20px 0; }
+        .summary-table th, .summary-table td { 
+            padding: 8px; 
+            text-align: left; 
+            border: 1px solid #000; 
+        }
+        .summary-table th { background: #eeeeee; }
+        .total-row { background: #dddddd; font-weight: bold; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>Custom Furniture Quote</h1>
+            <p>Request for Quote #{{ product_id }}</p>
+        </div>
+        
+        <div class="content">
+            <h2>Customer Information</h2>
+            <p><strong>Name:</strong> {{ customer_name }}</p>
+            <p><strong>Email:</strong> {{ customer_email }}</p>
+            {% if notes %}<p><strong>Notes:</strong> {{ notes }}</p>{% endif %}
+            
+            <h2>Quote Summary</h2>
+            <table class="summary-table">
+                <tr><th>Item</th><th>Selection</th><th>Price</th></tr>
+                
+                <tr><td>Base Product</td><td>Standard</td><td>${{ base_price|floatformat:2 }}</td></tr>
+                
+                {% if fabric and fabric.main_title %}
+                <tr><td>Fabric</td><td>{{ fabric.main_title }}{% if fabric.sub_title %} - {{ fabric.sub_title }}{% endif %}</td><td>+${{ fabric.main_price|floatformat:2 }}{% if fabric.sub_price %} + ${{ fabric.sub_price|floatformat:2 }}{% endif %}</td></tr>
+                {% endif %}
+                
+                <!-- Repeat for other options with .main_title and .main_price -->
+                
+                <tr class="total-row"><td colspan="2"><strong>Grand Total</strong></td><td><strong>${{ grand_total|floatformat:2 }}</strong></td></tr>
+            </table>
+        </div>
+    </div>
+</body>
+</html>

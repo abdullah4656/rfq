@@ -2,28 +2,41 @@
 {% block content %}
 
 <h2 class="mb-4">RFQ Summary</h2>
-<div class="card p-4">
+<div class="card p-4 shadow-sm">
   <h4>Customer Information</h4>
   <p><strong>Name:</strong> {{ rfq.customer_name }}</p>
   <p><strong>Email:</strong> {{ rfq.customer_email }}</p>
-  <p><strong>Notes:</strong> {{ rfq.notes }}</p>
+  <p><strong>Notes:</strong> {% if rfq.notes %}{{ rfq.notes }}{% else %}N/A{% endif %}</p>
 
   <hr>
   <h4>Order Details</h4>
   <p><strong>Product:</strong> {{ rfq.product_name }}</p>
-  {% if fabric %}<p><strong>Fabric:</strong> {{ fabric.title }} (+${{ fabric_price }})</p>{% endif %}
-  {% if trim %}<p><strong>Trim:</strong> {{ trim.title }} (+${{ trim_price }})</p>{% endif %}
+
+  {% if fabric %}
+    <p><strong>Fabric:</strong> {{ fabric.title }} (+${{ fabric_price }})</p>
+  {% else %}
+    <p><strong>Fabric:</strong> N/A</p>
+  {% endif %}
+
+  {% if trim %}
+    <p><strong>Trim:</strong> {{ trim.title }} (+${{ trim_price }})</p>
+  {% else %}
+    <p><strong>Trim:</strong> N/A</p>
+  {% endif %}
+
   {% if accessories %}
     <p><strong>Accessories:</strong>
       {% for a in accessories %}
         {{ a.title }} (+${{ a.price }}){% if not forloop.last %}, {% endif %}
       {% endfor %}
     </p>
+  {% else %}
+    <p><strong>Accessories:</strong> None</p>
   {% endif %}
 
-  <div class="mt-3 p-3 rfq-total-box">
+  <div class="mt-3 p-3 border rounded bg-light rfq-total-box">
     <h4>Total Price</h4>
-    <p class="fs-4"><strong>${{ grand_total }}</strong></p>
+    <p class="fs-4 text-success"><strong>${{ grand_total }}</strong></p>
   </div>
 </div>
 

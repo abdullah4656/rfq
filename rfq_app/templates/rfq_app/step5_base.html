@@ -1,0 +1,126 @@
+{% extends "rfq_app/base.html" %}
+
+{% block title %}Select Base - RFQ System{% endblock %}
+{% block progress_width %}50%{% endblock %}
+{% block progress_text %}Step 5 of 10 - Select Base{% endblock %}
+{% block progress_percent %}50% Complete{% endblock %} 
+{% block heading %}Choose Base Option{% endblock %}
+{% block search_placeholder %}Search base options by name, style, or description...{% endblock %}
+
+{% block content %}
+<!-- Search Bar -->
+<!-- <div class="row mb-4">
+    <div class="col-12">
+        <form method="get" class="search-form">
+            <div class="input-group">
+                <input type="text" name="search" class="form-control" 
+                       placeholder="Search base options by name, style, or description..." 
+                       value="{{ search_query }}">
+                <button type="submit" class="btn btn-primary">
+                    <i class="fas fa-search"></i>
+                </button>
+                {% if search_query %}
+                <a href="?" class="btn btn-outline-secondary">
+                    <i class="fas fa-times"></i> Clear
+                </a>
+                {% endif %}
+            </div>
+        </form>
+    </div>
+</div> -->
+
+<!-- Results info -->
+<!-- {% if search_query %}
+<div class="alert alert-info mb-4">
+    <i class="fas fa-info-circle me-2"></i>
+    Found {{ options|length }} base option(s) matching "{{ search_query }}"
+</div>
+{% endif %} -->
+
+<form method="post">
+    {% csrf_token %}
+    
+    <div class="row">
+        {% for option in options %}
+        <div class="col-md-4 mb-4">
+            <div class="card option-card {% if option.key == request.session.base_option %}selected{% endif %}">
+                {% if option.image %}  <!-- NEW: Add image if available -->
+                <img src="{{ option.image }}" class="card-img-top product-image" alt="{{ option.label }}">
+                {% endif %}
+                <div class="card-body">
+                    <h5 class="card-title">{{ option.label }}</h5>
+                    {% if option.price > 0 %}
+                    <span class="badge bg-success price-badge">+${{ option.price|floatformat:2 }}</span>
+                    {% else %}
+                    <span class="badge bg-secondary price-badge">Included</span>
+                    {% endif %}
+                    
+                    {% if option.description %}  <!-- NEW: Add description if available -->
+                    <p class="card-text mt-2 text-muted small">{{ option.description }}</p>
+                    {% endif %}
+                    
+                    {% if option.style %}  <!-- NEW: Add style if available -->
+                    <p class="card-text text-info small">
+                        <i class="fas fa-palette me-1"></i> Style: {{ option.style }}
+                    </p>
+                    {% endif %}
+                    
+                    <div class="form-check mt-3">
+                        <input class="form-check-input" type="radio" name="base" 
+                               id="base-{{ option.key }}" value="{{ option.key }}"
+                               {% if option.key == request.session.base_option %}checked{% endif %}>
+                        <label class="form-check-label" for="base-{{ option.key }}">
+                            Select this base
+                        </label>
+                    </div>
+
+                    {% if option.sub_options %}
+                    <div class="mt-3">
+                        <h6>Sub-options:</h6>
+                        {% for sub in option.sub_options %}
+                        <div class="form-check">
+                            <input class="form-check-input" type="radio" name="base" 
+                                   id="base-{{ option.key }}-{{ sub.key }}" 
+                                   value="{{ option.key }}-{{ sub.key }}"
+                                   {% if option.key == request.session.base_option and sub.key == request.session.base_option_sub %}checked{% endif %}>
+                            <label class="form-check-label" for="base-{{ option.key }}-{{ sub.key }}">
+                                {{ sub.label }}
+                                {% if sub.price > 0 %}
+                                <span class="badge bg-warning price-badge">+${{ sub.price|floatformat:2 }}</span>
+                                {% endif %}
+                            </label>
+                        </div>
+                        {% endfor %}
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        {% empty %}
+        <div class="col-12">
+            <div class="alert alert-warning text-center">  <!-- Updated to warning style -->
+                <i class="fas fa-exclamation-triangle me-2"></i>
+                {% if search_query %}
+                No base options found matching "{{ search_query }}". Please try a different search term.
+                {% else %}
+                No base options available for this product.
+                {% endif %}
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+
+    <div class="row mt-4">
+        <div class="col-12">
+            <div class="d-flex justify-content-between">
+                <a href="{% url 'step4_upholstery' %}" class="btn btn-secondary">
+                    <i class="fas fa-arrow-left"></i> Back
+                </a>
+                <button type="submit" class="btn btn-primary">
+                    Continue <i class="fas fa-arrow-right"></i>
+                </button>
+            </div>
+        </div>
+    </div>
+</form>
+{% endblock %}

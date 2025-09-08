@@ -1,0 +1,123 @@
+{% extends "rfq_app/base.html" %}
+
+{% block title %}Select Size - Marge Carson{% endblock %}
+{% block progress_width %}30%{% endblock %}
+{% block progress_text %}Step 3 of 10 - Select Size{% endblock %}
+{% block progress_percent %}30% Complete{% endblock %} 
+{% block heading %}Choose Your Perfect Size{% endblock %}
+{% block search_placeholder %}Search sizes by name, dimensions, or description...{% endblock %}
+
+{% block content %}
+<!-- Search Bar -->
+<!-- <div class="row mb-4">
+    <div class="col-12">
+        <form method="get" class="search-form">
+            <div class="input-group">
+                <input type="text" name="search" class="form-control" 
+                       placeholder="Search sizes by name, dimensions, or description..." 
+                       value="{{ search_query }}">
+                <button type="submit" class="btn btn-primary">
+                    <i class="fas fa-search"></i>
+                </button>
+                {% if search_query %}
+                <a href="?" class="btn btn-outline-secondary">
+                    <i class="fas fa-times"></i> Clear
+                </a>
+                {% endif %}
+            </div>
+        </form>
+    </div>
+</div> -->
+
+<!-- Results info -->
+<!-- {% if search_query %}
+<div class="alert alert-info mb-4">
+    <i class="fas fa-info-circle me-2"></i>
+    Found {{ sizes|length }} size option(s) matching "{{ search_query }}"
+</div>
+{% endif %} -->
+
+<form method="post">
+    {% csrf_token %}
+    
+    <div class="row">
+        {% for size in sizes %}
+        <div class="col-lg-4 col-md-6 mb-4">
+            <div class="card option-card h-100 {% if size.key == request.session.size %}selected{% endif %}">
+                <div class="card-body">
+                    <h5 class="card-title">{{ size.label }}</h5>
+                    {% if size.price > 0 %}
+                    <span class="price-badge">+${{ size.price|floatformat:2 }}</span>
+                    {% else %}
+                    <span class="badge bg-secondary">Standard Size</span>
+                    {% endif %}
+                    
+                    {% if size.description %}
+                    <p class="card-text mt-2 text-muted small">{{ size.description }}</p>
+                    {% endif %}
+                    
+                    {% if size.dimensions %}
+                    <p class="card-text text-primary small">
+                        <i class="fas fa-ruler-combined me-1"></i> {{ size.dimensions }}
+                    </p>
+                    {% endif %}
+                    
+                    <div class="form-check mt-3">
+                        <input class="form-check-input" type="radio" name="size" 
+                               id="size-{{ size.key }}" value="{{ size.key }}"
+                               {% if size.key == request.session.size %}checked{% endif %}>
+                        <label class="form-check-label" for="size-{{ size.key }}">
+                            Select this size
+                        </label>
+                    </div>
+
+                    {% if size.sub_options %}
+                    <div class="mt-3">
+                        <h6 class="text-primary">Available Variations:</h6>
+                        {% for sub in size.sub_options %}
+                        <div class="form-check">
+                            <input class="form-check-input" type="radio" name="size" 
+                                   id="size-{{ size.key }}-{{ sub.key }}" 
+                                   value="{{ size.key }}-{{ sub.key }}"
+                                   {% if size.key == request.session.size and sub.key == request.session.size_sub %}checked{% endif %}>
+                            <label class="form-check-label" for="size-{{ size.key }}-{{ sub.key }}">
+                                {{ sub.label }}
+                                {% if sub.price > 0 %}
+                                <span class="badge bg-warning">+${{ sub.price|floatformat:2 }}</span>
+                                {% endif %}
+                            </label>
+                        </div>
+                        {% endfor %}
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        {% empty %}
+        <div class="col-12">
+            <div class="alert alert-warning text-center">
+                <i class="fas fa-exclamation-triangle me-2"></i>
+                {% if search_query %}
+                No sizes found matching "{{ search_query }}". Please try a different search term.
+                {% else %}
+                No size options available for this product.
+                {% endif %}
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+
+    <div class="row mt-5">
+        <div class="col-12">
+            <div class="d-flex justify-content-between">
+                <a href="{% url 'step2_fabrics' %}" class="btn btn-outline-primary">
+                    <i class="fas fa-arrow-left me-2"></i> Back to Fabrics
+                </a>
+                <button type="submit" class="btn btn-primary">
+                    Continue to Upholstery <i class="fas fa-arrow-right ms-2"></i>
+                </button>
+            </div>
+        </div>
+    </div>
+</form>
+{% endblock %}

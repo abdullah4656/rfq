@@ -1,0 +1,14 @@
+{% comment %} RFQ Button - Add this near your Add to Cart button {% endcomment %}
+<div class="rfq-button-wrapper" style="margin: 20px 0;">
+  <a 
+    href="https://your-django-domain.com/rfq/start/?shopify_product_id={{ product.id }}&product_title={{ product.title | url_encode }}&product_price={{ product.price | money_without_currency }}&product_image={{ product.featured_image | img_url: 'medium' }}"
+    class="btn rfq-btn"
+    style="display: inline-block; padding: 15px 30px; background-color: #28a745; color: white; text-decoration: none; border-radius: 5px; font-weight: bold; margin: 10px 0;"
+    target="_blank"
+  >
+    📋 Request Custom Quote
+  </a>
+  <p style="font-size: 14px; color: #666; margin-top: 8px;">
+    Need custom options? Get a personalized quote for this item.
+  </p>
+</div>

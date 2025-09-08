@@ -1,50 +1,120 @@
 {% extends "rfq_app/base.html" %}
+
+{% block title %}Select Fabric - Marge Carson{% endblock %}
+{% block progress_width %}20%{% endblock %}
+{% block progress_text %}Step 2 of 10 - Select Fabric{% endblock %}
+{% block progress_percent %}20% Complete{% endblock %} 
+{% block heading %}Select Your Premium Fabric{% endblock %}
+{% block search_placeholder %}Search fabrics by name, color, or style...{% endblock %}
+
 {% block content %}
-{% include "rfq_app/stepper.html" with step=2 %}
-
-<h2 class="mb-4">Select Fabric</h2>
-
 <!-- Search Bar -->
-<form method="get" class="mb-4 d-flex">
-  <input type="text" name="q" value="{{ query }}" class="form-control me-2" placeholder="Search fabrics...">
-  <button type="submit" class="btn btn-gold">Search</button>
-</form>
-
-<div class="row">
-  <div class="col-md-8">
-    <form method="POST" class="row g-4">
-      {% csrf_token %}
-      {% for f in fabrics %}
-        <div class="col-md-6 col-12">
-          <div class="card h-100 text-center p-3">
-            {% if f.image_url %}
-              <img src="{{ f.image_url }}" class="card-img-top" alt="{{ f.title }}"
-                   style="max-height:150px; object-fit:cover;">
-            {% endif %}
-            <div class="card-body">
-              <label>
-                <input type="radio" name="fabric" value="{{ f.key }}">
-                <strong>{{ f.title }}</strong><br>
-                <span>+ ${{ f.price }}</span>
-              </label>
+<!-- <div class="row mb-4">
+    <div class="col-12">
+        <form method="get" class="search-form">
+            <div class="input-group">
+                <input type="text" name="search" class="form-control" 
+                       placeholder="Search fabrics by name, color, or style..." 
+                       value="{{ search_query }}">
+                <button type="submit" class="btn btn-primary">
+                    <i class="fas fa-search"></i>
+                </button>
+                {% if search_query %}
+                <a href="?" class="btn btn-outline-secondary">
+                    <i class="fas fa-times"></i> Clear
+                </a>
+                {% endif %}
             </div>
-          </div>
-        </div>
-      {% empty %}
-        <p>No fabrics found.</p>
-      {% endfor %}
-
-      <div class="col-12 sticky-next">
-        <button type="submit" class="btn btn-gold">Next →</button>
-      </div>
-    </form>
-  </div>
-
-  <div class="col-md-4">
-    <div class="rfq-total-box">
-      <h4>Running Total</h4>
-      <p class="fs-5"><strong>${{ running_total }}</strong></p>
+        </form>
     </div>
-  </div>
+</div> -->
+
+<!-- Results info -->
+<!-- {% if search_query %}
+<div class="alert alert-info mb-4">
+    <i class="fas fa-info-circle me-2"></i>
+    Found {{ fabrics|length }} fabric(s) matching "{{ search_query }}"
 </div>
+{% endif %} -->
+
+<form method="post">
+    {% csrf_token %}
+    
+    <div class="row">
+        {% for fabric in fabrics %}
+        <div class="col-lg-4 col-md-6 mb-4">
+            <div class="card option-card h-100 {% if fabric.key == request.session.fabric %}selected{% endif %}">
+                {% if fabric.image %}
+                <img src="{{ fabric.image }}" class="card-img-top product-image" alt="{{ fabric.label }}">
+                {% endif %}
+                <div class="card-body">
+                    <h5 class="card-title">{{ fabric.label }}</h5>
+                    {% if fabric.price > 0 %}
+                    <span class="price-badge">+${{ fabric.price|floatformat:2 }}</span>
+                    {% else %}
+                    <span class="badge bg-secondary">Standard Option</span>
+                    {% endif %}
+                    
+                    {% if fabric.description %}
+                    <p class="card-text mt-2 text-muted small">{{ fabric.description }}</p>
+                    {% endif %}
+                    
+                    <div class="form-check mt-3">
+                        <input class="form-check-input" type="radio" name="fabric" 
+                               id="fabric-{{ fabric.key }}" value="{{ fabric.key }}"
+                               {% if fabric.key == request.session.fabric %}checked{% endif %}>
+                        <label class="form-check-label" for="fabric-{{ fabric.key }}">
+                            Select this fabric
+                        </label>
+                    </div>
+
+                    {% if fabric.sub_options %}
+                    <div class="mt-3">
+                        <h6 class="text-primary">Available Variations:</h6>
+                        {% for sub in fabric.sub_options %}
+                        <div class="form-check">
+                            <input class="form-check-input" type="radio" name="fabric" 
+                                   id="fabric-{{ fabric.key }}-{{ sub.key }}" 
+                                   value="{{ fabric.key }}-{{ sub.key }}"
+                                   {% if fabric.key == request.session.fabric and sub.key == request.session.fabric_sub %}checked{% endif %}>
+                            <label class="form-check-label" for="fabric-{{ fabric.key }}-{{ sub.key }}">
+                                {{ sub.label }}
+                                {% if sub.price > 0 %}
+                                <span class="badge bg-warning">+${{ sub.price|floatformat:2 }}</span>
+                                {% endif %}
+                            </label>
+                        </div>
+                        {% endfor %}
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        {% empty %}
+        <div class="col-12">
+            <div class="alert alert-warning text-center">
+                <i class="fas fa-exclamation-triangle me-2"></i>
+                {% if search_query %}
+                No fabrics found matching "{{ search_query }}". Please try a different search term.
+                {% else %}
+                No fabric options available for this collection.
+                {% endif %}
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+
+    <div class="row mt-5">
+        <div class="col-12">
+            <div class="d-flex justify-content-between">
+                <a href="{% url 'step1_select_product' %}" class="btn btn-outline-primary">
+                    <i class="fas fa-arrow-left me-2"></i> Back to Products
+                </a>
+                <button type="submit" class="btn btn-primary">
+                    Continue to Size <i class="fas fa-arrow-right ms-2"></i>
+                </button>
+            </div>
+        </div>
+    </div>
+</form>
 {% endblock %}

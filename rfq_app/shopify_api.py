@@ -1,12 +1,17 @@
-import requests, os, json
+import requests
+import os
+import json
+import logging
 from dotenv import load_dotenv
 
 load_dotenv()
 
+logger = logging.getLogger(__name__)
+
 SHOPIFY_STORE_URL = os.getenv("SHOPIFY_STORE_URL", "").strip()
 SHOPIFY_ACCESS_TOKEN = os.getenv("SHOPIFY_ACCESS_TOKEN", "").strip()
 
-# Ensure https:// is always included
+# Ensure https:// prefix
 if SHOPIFY_STORE_URL and not SHOPIFY_STORE_URL.startswith("http"):
     SHOPIFY_STORE_URL = "https://" + SHOPIFY_STORE_URL
 
@@ -15,88 +20,115 @@ headers = {
     "Content-Type": "application/json"
 }
 
-def get_metafield(product_id, key):
-    url = f"{SHOPIFY_STORE_URL}/admin/api/2025-01/products/{product_id}/metafields.json"
-    res = requests.get(url, headers=headers, timeout=10)
-    res.raise_for_status()
-    for m in res.json().get("metafields", []):
-        if m["namespace"] == "rfq" and m["key"] == key:
-            return m["value"]   # ✅ always return raw string
-    return "[]"
-
-def get_fabrics(product_id):
-    return get_metafield(product_id, "fabric_options")
-
-def get_trims(product_id):
-    return get_metafield(product_id, "finish_options")
-
-def get_accessories(product_id):
-    return get_metafield(product_id, "accessory_options")
-
-def get_base_price(product_id):
-    return get_metafield(product_id, "base_price_cents")
-
-
-def get_products():
-    url = f"{SHOPIFY_STORE_URL}/admin/api/2025-01/products.json?limit=10&fields=id,title,images,variants"
+def make_shopify_request(url):
+    """Make a request to Shopify API with error handling"""
     try:
-        res = requests.get(url, headers=headers, timeout=10)
+        res = requests.get(url, headers=headers, timeout=15)
         res.raise_for_status()
-        products = res.json().get("products", [])
+        return res
+    except requests.exceptions.RequestException as e:
+        logger.error(f"Shopify API request failed: {e}")
+        return None
 
-        # Simplify product info for templates
-        product_list = []
-        for p in products:
-            first_image = p["images"][0]["src"] if p.get("images") else ""
-            first_price = p["variants"][0]["price"] if p.get("variants") else "N/A"
-            product_list.append({
-                "id": p["id"],
-                "title": p["title"],
-                "image": first_image,
-                "price": first_price,
-            })
-        return product_list
-
-    except Exception as e:
-        print("⚠ Shopify API error:", e)
-        return [
-            {"id": "111", "title": "Palo Alto Sofa", "image": "/static/rfq_app/img/sofa.jpg", "price": "2500"},
-            {"id": "112", "title": "Palo Alto Chair", "image": "/static/rfq_app/img/chair.jpg", "price": "1200"},
-        ]
-def get_collection_products(collection_id, limit=250):
-    """
-    Fetch ALL products from a Shopify collection (works for both smart + custom collections).
-    """
-    products = []
-
-    # Step 1: get product IDs from Collects API
-    collects_url = f"{SHOPIFY_STORE_URL}/admin/api/2025-01/collects.json?collection_id={collection_id}&limit={limit}"
-    while collects_url:
-        res = requests.get(collects_url, headers=headers, timeout=10)
-        res.raise_for_status()
+def get_products_from_collection(collection_id, limit=50):
+    """Fetch products belonging to a specific Shopify collection."""
+    try:
+        # Step 1: get product IDs via collects
+        collects_url = f"{SHOPIFY_STORE_URL}/admin/api/2025-01/collects.json?collection_id={collection_id}&limit={limit}"
+        res = make_shopify_request(collects_url)
+        if not res:
+            return []
+            
         collects = res.json().get("collects", [])
         product_ids = [str(c["product_id"]) for c in collects]
-        if product_ids:
-            # Step 2: fetch full product details
-            ids_str = ",".join(product_ids)
-            prod_url = f"{SHOPIFY_STORE_URL}/admin/api/2025-01/products.json?ids={ids_str}&fields=id,title,images,variants"
-            pres = requests.get(prod_url, headers=headers, timeout=10)
-            pres.raise_for_status()
-            for p in pres.json().get("products", []):
-                products.append({
-                    "id": p["id"],
-                    "title": p["title"],
-                    "image": p["images"][0]["src"] if p.get("images") else "",
-                    "price": p["variants"][0]["price"] if p.get("variants") else "N/A",
-                })
 
-        # handle pagination of collects
-        link_header = res.headers.get("Link")
-        if link_header and 'rel="next"' in link_header:
-            start = link_header.find("<") + 1
-            end = link_header.find(">")
-            collects_url = link_header[start:end]
-        else:
-            collects_url = None
+        if not product_ids:
+            return []
 
-    return products
+        # Step 2: fetch product details
+        ids_str = ",".join(product_ids)
+        prod_url = f"{SHOPIFY_STORE_URL}/admin/api/2025-01/products.json?ids={ids_str}"
+        pres = make_shopify_request(prod_url)
+        if not pres:
+            return []
+
+        products = []
+        for p in pres.json().get("products", []):
+            variants = p.get("variants", [])
+            price = float(variants[0]["price"]) if variants and variants[0].get("price") else 0.0
+            image = p.get("image", {}).get("src", "")
+            products.append({
+                "id": p["id"],
+                "title": p["title"],
+                "price": price,
+                "image": image,
+            })
+        return products
+
+    except Exception as e:
+        logger.error(f"Error fetching collection {collection_id}: {e}")
+        return []
+
+def get_product_price(product_id):
+    """Return product price as float (from first variant)."""
+    try:
+        url = f"{SHOPIFY_STORE_URL}/admin/api/2025-01/products/{product_id}.json"
+        res = make_shopify_request(url)
+        if not res:
+            return 0.0
+            
+        product = res.json().get("product", {})
+        price = product.get("variants", [{}])[0].get("price", "0")
+        return float(price) if price else 0.0
+    except Exception as e:
+        logger.error(f"Error fetching price for {product_id}: {e}")
+        return 0.0
+
+def get_metafield(product_id, key, default=None):
+    """Fetch metafield and parse JSON value safely."""
+    url = f"{SHOPIFY_STORE_URL}/admin/api/2025-01/products/{product_id}/metafields.json"
+    try:
+        res = make_shopify_request(url)
+        if not res:
+            return default or []
+            
+        metafields = res.json().get("metafields", [])
+        for m in metafields:
+            if m["namespace"] == "rfq" and m["key"] == key:
+                try:
+                    value = m["value"]
+                    if isinstance(value, str):
+                        return json.loads(value)
+                    return value
+                except (json.JSONDecodeError, TypeError):
+                    logger.warning(f"Failed to parse metafield {key} for product {product_id}")
+                    return default or []
+        return default or []
+    except Exception as e:
+        logger.error(f"Error fetching metafield {key}: {e}")
+        return default or []
+
+# --- Option fetchers ---
+def get_fabrics(product_id): 
+    return get_metafield(product_id, "fabric_options", [])
+
+def get_size(product_id): 
+    return get_metafield(product_id, "size_options", [])
+
+def get_upholstery_style(product_id): 
+    return get_metafield(product_id, "upholstery_style_options", [])
+
+def get_base_option(product_id): 
+    return get_metafield(product_id, "base_options", [])
+
+def get_rails(product_id): 
+    return get_metafield(product_id, "rails_option", [])
+
+def get_frame_finish(product_id): 
+    return get_metafield(product_id, "frame_finish_option", [])
+
+def get_heights(product_id): 
+    return get_metafield(product_id, "height_options", [])
+
+def get_frame_trim(product_id): 
+    return get_metafield(product_id, "frame_trim_options", [])
