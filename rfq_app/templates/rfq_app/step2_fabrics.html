@@ -15,13 +15,7 @@
         {% for fabric in fabrics %}
         <div class="col-lg-4 col-md-6 mb-4">
             <div class="card option-card h-100 {% if fabric.key == request.session.fabric %}selected{% endif %}">
-                {% if fabric.image %}
-                <img src="{{ fabric.image }}" class="card-img-top product-image" alt="{{ fabric.label }}">
-                {% else %}
-                <div class="card-img-top product-image d-flex align-items-center justify-content-center bg-light">
-                    <i class="fas fa-tshirt fa-3x text-muted"></i>
-                </div>
-                {% endif %}
+              
                 <div class="card-body">
                     <h5 class="card-title">{{ fabric.label }}</h5>
                     {% if fabric.price > 0 %}
