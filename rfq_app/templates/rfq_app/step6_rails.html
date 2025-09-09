@@ -15,13 +15,7 @@
         {% for option in options %}
         <div class="col-md-4 mb-4">
             <div class="card option-card {% if option.key == request.session.rails %}selected{% endif %}">
-                {% if option.image %}
-                <img src="{{ option.image }}" class="card-img-top product-image" alt="{{ option.label }}">
-                {% else %}
-                <div class="card-img-top product-image d-flex align-items-center justify-content-center bg-light">
-                    <i class="fas fa-grip-lines fa-3x text-muted"></i>
-                </div>
-                {% endif %}
+                
                 <div class="card-body">
                     <h5 class="card-title">{{ option.label }}</h5>
                     {% if option.price > 0 %}
