@@ -10,8 +10,8 @@
 <div class="row">
     <div class="col-md-8">
         <div class="card">
-            <div class="card-header bg-success text-white" style="background-color : black !important;">
-                <h5 class="mb-0" style="color:white !important;"><i class="fas fa-check-circle"></i> Quote Summary</h5>
+            <div class="card-header" style="background-color: #000000 !important;">
+                <h5 class="mb-0" style="color: #ffffff !important;"><i class="fas fa-check-circle"></i> Quote Summary</h5>
             </div>
             <div class="card-body">
                 <div class="table-responsive">
@@ -77,7 +77,7 @@
                         </tr>
                         {% endif %}
                         
-                        <tr class="table-primary">
+                        <tr style="background-color: #f8f9fa;">
                             <th><strong>Grand Total</strong></th>
                             <td class="text-end"><strong>${{ grand_total|floatformat:2 }}</strong></td>
                         </tr>
@@ -88,8 +88,8 @@
         
         {% if notes %}
         <div class="card mt-4">
-            <div class="card-header bg-info text-white" style="background-color: black !important;color: white !important;">
-                <h5 class="mb-0" style="color:white !important;"><i class="fas fa-sticky-note"></i> Your Notes</h5>
+            <div class="card-header" style="background-color: #000000 !important;">
+                <h5 class="mb-0" style="color: #ffffff !important;"><i class="fas fa-sticky-note"></i> Your Notes</h5>
             </div>
             <div class="card-body">
                 <p class="card-text">{{ notes }}</p>
@@ -100,8 +100,8 @@
     
     <div class="col-md-4">
         <div class="card">
-            <div class="card-header bg-primary text-white" style="background-color: black !important;">
-                <h5 class="mb-0" style="color:white !important;" ><i class="fas fa-user"></i> Customer Information</h5>
+            <div class="card-header" style="background-color: #000000 !important;">
+                <h5 class="mb-0" style="color: #ffffff !important;"><i class="fas fa-user"></i> Customer Information</h5>
             </div>
             <div class="card-body">
                 <p><strong>Name:</strong> {{ customer_name }}</p>
@@ -110,8 +110,8 @@
         </div>
         
         <div class="card mt-4">
-            <div class="card-header bg-warning text-dark" style="background-color: black !important;color:white !important;">
-                <h5 class="mb-0" style="color:white !important;"><i class="fas fa-info-circle"></i> Next Steps</h5>
+            <div class="card-header" style="background-color: #000000 !important;">
+                <h5 class="mb-0" style="color: #ffffff !important;"><i class="fas fa-info-circle"></i> Next Steps</h5>
             </div>
             <div class="card-body">
                 <p>Your quote has been sent to our team. We'll contact you within 24 hours to:</p>
@@ -124,11 +124,11 @@
         </div>
         
         <div class="mt-4">
-            <a href="{% url 'rfq_summary_pdf' %}" class="btn btn-outline-primary w-100 mb-2">
-                <i class="fas fa-download"></i> Download PDF Quote
+            <a href="{% url 'rfq_summary_pdf' product_id=product_id %}" class="btn btn-outline-primary w-100 mb-2">
+                <i class="fas fa-download me-2"></i> Download PDF Quote
             </a>
             <a href="{% url 'step1_select_product' %}" class="btn btn-outline-secondary w-100">
-                <i class="fas fa-plus"></i> Create New Quote
+                <i class="fas fa-plus me-2"></i> Create New Quote
             </a>
         </div>
     </div>
@@ -136,8 +136,8 @@
 
 <div class="row mt-4">
     <div class="col-12">
-        <div class="alert alert-success">
-            <h5><i class="fas fa-check-circle"></i> Thank you for your request!</h5>
+        <div class="alert alert-info" style="background-color: #f8f9fa; border-color: #000000; color: #000000;">
+            <h5><i class="fas fa-check-circle me-2"></i> Thank you for your request!</h5>
             <p class="mb-0">Your custom furniture quote has been submitted successfully. We've sent a copy to {{ customer_email }}.</p>
         </div>
     </div>

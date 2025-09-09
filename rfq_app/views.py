@@ -75,7 +75,7 @@ def get_running_total(request, product_id, current_options=None):
     
     return total
 
-### STEP 1: Select Product ###
+### STEP 1: Select Product (Optional - can be kept as entry point) ###
 def step1_select_product(request):
     try:
         products = get_products_from_collection(COLLECTION_ID)
@@ -89,7 +89,7 @@ def step1_select_product(request):
             if product_id:
                 clear_rfq_session(request)
                 request.session["product_id"] = product_id
-                return redirect("step2_fabrics")
+                return redirect("step2_fabrics", product_id=product_id)
             
             return render(request, "rfq_app/step1_select_product.html", {
                 "products": products,
@@ -105,11 +105,7 @@ def step1_select_product(request):
         })
 
 ### STEP 2: Fabrics ###
-def step2_fabrics(request):
-    product_id = request.session.get("product_id")
-    if not product_id:
-        return redirect("step1_select_product")
-
+def step2_fabrics(request, product_id):
     try:
         base_price = safe_price(get_product_price(product_id))
         fabrics = get_fabrics(product_id) or []
@@ -125,7 +121,7 @@ def step2_fabrics(request):
         
         # Skip step if no fabric options
         if not fabrics:
-            return redirect("step3_size")
+            return redirect("step3_size", product_id=product_id)
 
         # Calculate prices for main and sub-options with enhanced handling
         for f in fabrics:
@@ -147,7 +143,8 @@ def step2_fabrics(request):
                     "error": "Please select a fabric to continue.",
                     "search_query": search_query,
                     "show_search": True,
-                    "options": fabrics
+                    "options": fabrics,
+                    "product_id": product_id
                 })
 
             # Handle sub-options: "ParentKey-SubKey"
@@ -158,7 +155,7 @@ def step2_fabrics(request):
 
             request.session["fabric"] = parent_key
             request.session["fabric_sub"] = sub_key
-            return redirect("step3_size")
+            return redirect("step3_size", product_id=product_id)
 
         return render(request, "rfq_app/step2_fabrics.html", {
             "fabrics": fabrics,
@@ -166,21 +163,20 @@ def step2_fabrics(request):
             "base_price": base_price,
             "search_query": search_query,
             "show_search": True,
-            "options": fabrics
+            "options": fabrics,
+            "product_id": product_id
         })
     
     except Exception as e:
         logger.error(f"Error in step2_fabrics: {e}")
         return render(request, "rfq_app/step2_fabrics.html", {
             "error": "Failed to load fabric options. Please try again.",
-            "show_search": True
+            "show_search": True,
+            "product_id": product_id
         })
-### STEP 3: Size ###
-def step3_size(request):
-    product_id = request.session.get("product_id")
-    if not product_id:
-        return redirect("step1_select_product")
 
+### STEP 3: Size ###
+def step3_size(request, product_id):
     try:
         base_price = safe_price(get_product_price(product_id))
         sizes = get_size(product_id) or []
@@ -196,7 +192,7 @@ def step3_size(request):
 
         # If no sizes at all, skip this step
         if not sizes:
-            return redirect("step4_upholstery")
+            return redirect("step4_upholstery", product_id=product_id)
 
         # Add prices to main + sub-options with enhanced handling
         for s in sizes:
@@ -217,7 +213,8 @@ def step3_size(request):
                     "running_total": get_running_total(request, product_id),
                     "search_query": search_query,
                     "show_search": True,
-                    "options": sizes
+                    "options": sizes,
+                    "product_id": product_id
                 })
 
             if "-" in selected:
@@ -227,7 +224,7 @@ def step3_size(request):
 
             request.session["size"] = parent_key
             request.session["size_sub"] = sub_key
-            return redirect("step4_upholstery")
+            return redirect("step4_upholstery", product_id=product_id)
 
         return render(request, "rfq_app/step3_size.html", {
             "sizes": sizes,
@@ -235,21 +232,20 @@ def step3_size(request):
             "base_price": base_price,
             "search_query": search_query,
             "show_search": True,
-            "options": sizes
+            "options": sizes,
+            "product_id": product_id
         })
     
     except Exception as e:
         logger.error(f"Error in step3_size: {e}")
         return render(request, "rfq_app/step3_size.html", {
             "error": "Failed to load size options. Please try again.",
-            "show_search": True
+            "show_search": True,
+            "product_id": product_id
         })
-### STEP 4: Upholstery ###
-def step4_upholstery(request):
-    product_id = request.session.get("product_id")
-    if not product_id:
-        return redirect("step1_select_product")
 
+### STEP 4: Upholstery ###
+def step4_upholstery(request, product_id):
     try:
         options = get_upholstery_style(product_id) or []
         base_price = safe_price(get_product_price(product_id))
@@ -283,7 +279,8 @@ def step4_upholstery(request):
                     "running_total": get_running_total(request, product_id),
                     "search_query": search_query,
                     "show_search": True,
-                    "options_list": options
+                    "options_list": options,
+                    "product_id": product_id
                 })
 
             # Split parent / sub-option if needed
@@ -294,7 +291,7 @@ def step4_upholstery(request):
 
             request.session["upholstery"] = parent_key
             request.session["upholstery_sub"] = sub_key
-            return redirect("step5_base")
+            return redirect("step5_base", product_id=product_id)
 
         return render(request, "rfq_app/step4_upholstery.html", {
             "options": options,
@@ -302,26 +299,25 @@ def step4_upholstery(request):
             "base_price": base_price,
             "search_query": search_query,
             "show_search": True,
-            "options_list": options
+            "options_list": options,
+            "product_id": product_id
         })
     
     except Exception as e:
         logger.error(f"Error in step4_upholstery: {e}")
         return render(request, "rfq_app/step4_upholstery.html", {
             "error": "Failed to load upholstery options. Please try again.",
-            "show_search": True
+            "show_search": True,
+            "product_id": product_id
         })
-### STEP 5: Base ###
-def step5_base(request):
-    product_id = request.session.get("product_id")
-    if not product_id:
-        return redirect("step1_select_product")
 
+### STEP 5: Base ###
+def step5_base(request, product_id):
     try:
         options = get_base_option(product_id) or []
         base_price = safe_price(get_product_price(product_id))
 
-        # SEARCH FUNCTIONALITY - NEW CODE
+        # SEARCH FUNCTIONALITY
         search_query = request.GET.get('search', '')
         if search_query:
             options = [o for o in options if 
@@ -348,8 +344,9 @@ def step5_base(request):
                     "options": options,
                     "error": "Please select a base option.",
                     "running_total": get_running_total(request, product_id),
-                    "search_query": search_query,  # NEW
-                    "show_search": True,  # NEW
+                    "search_query": search_query,
+                    "show_search": True,
+                    "product_id": product_id
                 })
 
             # Split parent / sub-option if needed
@@ -360,33 +357,32 @@ def step5_base(request):
 
             request.session["base_option"] = parent_key
             request.session["base_option_sub"] = sub_key
-            return redirect("step6_rails")
+            return redirect("step6_rails", product_id=product_id)
 
         return render(request, "rfq_app/step5_base.html", {
             "options": options,
             "running_total": get_running_total(request, product_id),
             "base_price": base_price,
-            "search_query": search_query,  # NEW
-            "show_search": True,  # NEW
+            "search_query": search_query,
+            "show_search": True,
+            "product_id": product_id
         })
     
     except Exception as e:
         logger.error(f"Error in step5_base: {e}")
         return render(request, "rfq_app/step5_base.html", {
             "error": "Failed to load base options. Please try again.",
-            "show_search": True  # NEW
+            "show_search": True,
+            "product_id": product_id
         })
-### STEP 6: Rails ###
-def step6_rails(request):
-    product_id = request.session.get("product_id")
-    if not product_id:
-        return redirect("step1_select_product")
 
+### STEP 6: Rails ###
+def step6_rails(request, product_id):
     try:
         options = get_rails(product_id) or []
         base_price = safe_price(get_product_price(product_id))
 
-        # SEARCH FUNCTIONALITY - NEW CODE
+        # SEARCH FUNCTIONALITY
         search_query = request.GET.get('search', '')
         if search_query:
             options = [o for o in options if 
@@ -413,8 +409,9 @@ def step6_rails(request):
                     "options": options,
                     "error": "Please select a rail option.",
                     "running_total": get_running_total(request, product_id),
-                    "search_query": search_query,  # NEW
-                    "show_search": True,  # NEW
+                    "search_query": search_query,
+                    "show_search": True,
+                    "product_id": product_id
                 })
 
             # Split parent / sub-option if needed
@@ -425,33 +422,32 @@ def step6_rails(request):
 
             request.session["rails"] = parent_key
             request.session["rails_sub"] = sub_key
-            return redirect("step7_frame_finish")
+            return redirect("step7_frame_finish", product_id=product_id)
 
         return render(request, "rfq_app/step6_rails.html", {
             "options": options,
             "running_total": get_running_total(request, product_id),
             "base_price": base_price,
-            "search_query": search_query,  # NEW
-            "show_search": True,  # NEW
+            "search_query": search_query,
+            "show_search": True,
+            "product_id": product_id
         })
     
     except Exception as e:
         logger.error(f"Error in step6_rails: {e}")
         return render(request, "rfq_app/step6_rails.html", {
             "error": "Failed to load rail options. Please try again.",
-            "show_search": True  # NEW
+            "show_search": True,
+            "product_id": product_id
         })
-### STEP 7: Frame Finish ###
-def step7_frame_finish(request):
-    product_id = request.session.get("product_id")
-    if not product_id:
-        return redirect("step1_select_product")
 
+### STEP 7: Frame Finish ###
+def step7_frame_finish(request, product_id):
     try:
         options = get_frame_finish(product_id) or []
         base_price = safe_price(get_product_price(product_id))
 
-        # SEARCH FUNCTIONALITY - NEW CODE
+        # SEARCH FUNCTIONALITY
         search_query = request.GET.get('search', '')
         if search_query:
             options = [o for o in options if 
@@ -479,8 +475,9 @@ def step7_frame_finish(request):
                     "options": options,
                     "error": "Please select a frame finish.",
                     "running_total": get_running_total(request, product_id),
-                    "search_query": search_query,  # NEW
-                    "show_search": True,  # NEW
+                    "search_query": search_query,
+                    "show_search": True,
+                    "product_id": product_id
                 })
 
             # Handle parent / sub-option split
@@ -491,33 +488,32 @@ def step7_frame_finish(request):
 
             request.session["frame_finish"] = parent_key
             request.session["frame_finish_sub"] = sub_key
-            return redirect("step8_height")
+            return redirect("step8_height", product_id=product_id)
 
         return render(request, "rfq_app/step7_frame_finish.html", {
             "options": options,
             "running_total": get_running_total(request, product_id),
             "base_price": base_price,
-            "search_query": search_query,  # NEW
-            "show_search": True,  # NEW
+            "search_query": search_query,
+            "show_search": True,
+            "product_id": product_id
         })
     
     except Exception as e:
         logger.error(f"Error in step7_frame_finish: {e}")
         return render(request, "rfq_app/step7_frame_finish.html", {
             "error": "Failed to load frame finish options. Please try again.",
-            "show_search": True  # NEW
+            "show_search": True,
+            "product_id": product_id
         })
-### STEP 8: Height ###
-def step8_height(request):
-    product_id = request.session.get("product_id")
-    if not product_id:
-        return redirect("step1_select_product")
 
+### STEP 8: Height ###
+def step8_height(request, product_id):
     try:
         options = get_heights(product_id) or []
         base_price = safe_price(get_product_price(product_id))
 
-        # SEARCH FUNCTIONALITY - NEW CODE
+        # SEARCH FUNCTIONALITY
         search_query = request.GET.get('search', '')
         if search_query:
             options = [o for o in options if 
@@ -544,8 +540,9 @@ def step8_height(request):
                     "options": options,
                     "error": "Please select a height option.",
                     "running_total": get_running_total(request, product_id),
-                    "search_query": search_query,  # NEW
-                    "show_search": True,  # NEW
+                    "search_query": search_query,
+                    "show_search": True,
+                    "product_id": product_id
                 })
 
             # Handle parent / sub-option
@@ -556,33 +553,32 @@ def step8_height(request):
 
             request.session["height"] = parent_key
             request.session["height_sub"] = sub_key
-            return redirect("step9_frame_trim")
+            return redirect("step9_frame_trim", product_id=product_id)
 
         return render(request, "rfq_app/step8_height.html", {
             "options": options,
             "running_total": get_running_total(request, product_id),
             "base_price": base_price,
-            "search_query": search_query,  # NEW
-            "show_search": True,  # NEW
+            "search_query": search_query,
+            "show_search": True,
+            "product_id": product_id
         })
     
     except Exception as e:
         logger.error(f"Error in step8_height: {e}")
         return render(request, "rfq_app/step8_height.html", {
             "error": "Failed to load height options. Please try again.",
-            "show_search": True  # NEW
+            "show_search": True,
+            "product_id": product_id
         })
-### STEP 9: Frame Trim ###
-def step9_frame_trim(request):
-    product_id = request.session.get("product_id")
-    if not product_id:
-        return redirect("step1_select_product")
 
+### STEP 9: Frame Trim ###
+def step9_frame_trim(request, product_id):
     try:
         options = get_frame_trim(product_id) or []
         base_price = safe_price(get_product_price(product_id))
 
-        # SEARCH FUNCTIONALITY - NEW CODE
+        # SEARCH FUNCTIONALITY
         search_query = request.GET.get('search', '')
         if search_query:
             options = [o for o in options if 
@@ -592,6 +588,8 @@ def step9_frame_trim(request):
                       search_query.lower() in o.get('trim_type', '').lower() or
                       search_query.lower() in o.get('material', '').lower() or
                       search_query.lower() in o.get('style', '').lower()]
+
+        # Add prices for main + sub-options with enhanced handling
 
         # Add prices for main + sub-options with enhanced handling
         for o in options:
@@ -610,8 +608,9 @@ def step9_frame_trim(request):
                     "options": options,
                     "error": "Please select a frame trim option.",
                     "running_total": get_running_total(request, product_id),
-                    "search_query": search_query,  # NEW
-                    "show_search": True,  # NEW
+                    "search_query": search_query,
+                    "show_search": True,
+                    "product_id": product_id
                 })
 
             # Handle parent / sub-option
@@ -622,28 +621,27 @@ def step9_frame_trim(request):
 
             request.session["frame_trim"] = parent_key
             request.session["frame_trim_sub"] = sub_key
-            return redirect("step10_customer_info")
+            return redirect("step10_customer_info", product_id=product_id)
 
         return render(request, "rfq_app/step9_frame_trim.html", {
             "options": options,
             "running_total": get_running_total(request, product_id),
             "base_price": base_price,
-            "search_query": search_query,  # NEW
-            "show_search": True,  # NEW
+            "search_query": search_query,
+            "show_search": True,
+            "product_id": product_id
         })
     
     except Exception as e:
         logger.error(f"Error in step9_frame_trim: {e}")
         return render(request, "rfq_app/step9_frame_trim.html", {
             "error": "Failed to load frame trim options. Please try again.",
-            "show_search": True  # NEW
+            "show_search": True,
+            "product_id": product_id
         })
-### STEP 10: Customer Info ###
-def step10_customer_info(request):
-    product_id = request.session.get("product_id")
-    if not product_id:
-        return redirect("step1_select_product")
 
+### STEP 10: Customer Info ###
+def step10_customer_info(request, product_id):
     if request.method == "POST":
         name = request.POST.get("name", "").strip()
         email = request.POST.get("email", "").strip()
@@ -652,12 +650,14 @@ def step10_customer_info(request):
         # Basic validation
         if not name:
             return render(request, "rfq_app/step10.html", {
-                "error": "Please enter your name."
+                "error": "Please enter your name.",
+                "product_id": product_id
             })
         
         if not email or "@" not in email:
             return render(request, "rfq_app/step10.html", {
-                "error": "Please enter a valid email address."
+                "error": "Please enter a valid email address.",
+                "product_id": product_id
             })
 
         request.session["customer_name"] = name
@@ -751,25 +751,23 @@ def step10_customer_info(request):
             # Send
             email_msg.send(fail_silently=False)
 
-            return redirect("rfq_summary")
+            return redirect("rfq_summary", product_id=product_id)
 
         except Exception as e:
             logger.error(f"Error sending email in step10: {e}")
             return render(request, "rfq_app/step10.html", {
-                "error": "Failed to send your request. Please try again."
+                "error": "Failed to send your request. Please try again.",
+                "product_id": product_id
             })
 
     # GET → customer form
     return render(request, "rfq_app/step10.html", {
-        "running_total": get_running_total(request, product_id)
+        "running_total": get_running_total(request, product_id),
+        "product_id": product_id
     })
 
 ### Summary Views ###
-def rfq_summary(request):
-    product_id = request.session.get("product_id")
-    if not product_id:
-        return redirect("step1_select_product")
-
+def rfq_summary(request, product_id):
     try:
         base_price = safe_price(get_product_price(product_id))
 
@@ -813,14 +811,11 @@ def rfq_summary(request):
     except Exception as e:
         logger.error(f"Error in rfq_summary: {e}")
         return render(request, "rfq_app/summary.html", {
-            "error": "Failed to load summary. Please try again."
+            "error": "Failed to load summary. Please try again.",
+            "product_id": product_id
         })
 
-def rfq_summary_pdf(request):
-    product_id = request.session.get("product_id")
-    if not product_id:
-        return redirect("step1_select_product")
-
+def rfq_summary_pdf(request, product_id):
     try:
         base_price = safe_price(get_product_price(product_id))
 
@@ -910,8 +905,11 @@ def start_rfq_from_shopify(request):
         request.session['product_price'] = product_price
         request.session['product_image'] = product_image
         
-        # Redirect to the first step of your RFQ process
-        return redirect('step1_select_product')
+        # Store the product ID in session for backward compatibility
+        request.session['product_id'] = shopify_product_id
+        
+        # Redirect to the first step of your RFQ process with product_id in URL
+        return redirect('step2_fabrics', product_id=shopify_product_id)
     
     # If no product ID provided, go to normal start
     return redirect('step1_select_product')
