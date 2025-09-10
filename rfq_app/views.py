@@ -6,7 +6,7 @@ from django.utils.html import strip_tags
 from django.template.loader import render_to_string
 from django.core.mail import EmailMultiAlternatives
 from django.http import HttpResponse
-
+import datetime
 from .shopify_api import (
     get_products_from_collection,
     get_product_price,
@@ -25,12 +25,14 @@ logger = logging.getLogger(__name__)
 COLLECTION_ID = "296548499652"
 
 # Session keys for RFQ data
+# Add Shopify-specific keys to your session management
 RFQ_SESSION_KEYS = [
     'product_id', 'fabric', 'fabric_sub', 'size', 'size_sub',
     'upholstery', 'upholstery_sub', 'base_option', 'base_option_sub',
     'rails', 'rails_sub', 'frame_finish', 'frame_finish_sub',
     'height', 'height_sub', 'frame_trim', 'frame_trim_sub',
-    'customer_name', 'customer_email', 'notes'
+    'customer_name', 'customer_email', 'notes',
+    'shopify_product_id', 'product_title', 'product_price', 'product_image'  # Add these
 ]
 
 def clear_rfq_session(request):
@@ -119,9 +121,10 @@ def step2_fabrics(request, product_id):
                       search_query.lower() in f.get('description', '').lower() or
                       search_query.lower() in f.get('color', '').lower()]
         
-        # Skip step if no fabric options
+        # Skip step if no fabric options - automatically go to next available step
         if not fabrics:
-            return redirect("step3_size", product_id=product_id)
+            next_step = get_next_step('step2_fabrics', product_id)
+            return redirect(next_step, product_id=product_id)
 
         # Calculate prices for main and sub-options with enhanced handling
         for f in fabrics:
@@ -155,7 +158,10 @@ def step2_fabrics(request, product_id):
 
             request.session["fabric"] = parent_key
             request.session["fabric_sub"] = sub_key
-            return redirect("step3_size", product_id=product_id)
+            
+            # Use automatic next step detection instead of hardcoded redirect
+            next_step = get_next_step('step2_fabrics', product_id)
+            return redirect(next_step, product_id=product_id)
 
         return render(request, "rfq_app/step2_fabrics.html", {
             "fabrics": fabrics,
@@ -169,11 +175,9 @@ def step2_fabrics(request, product_id):
     
     except Exception as e:
         logger.error(f"Error in step2_fabrics: {e}")
-        return render(request, "rfq_app/step2_fabrics.html", {
-            "error": "Failed to load fabric options. Please try again.",
-            "show_search": True,
-            "product_id": product_id
-        })
+        # On error, try to go to next step instead of showing error page
+        next_step = get_next_step('step2_fabrics', product_id)
+        return redirect(next_step, product_id=product_id)
 
 ### STEP 3: Size ###
 def step3_size(request, product_id):
@@ -190,9 +194,10 @@ def step3_size(request, product_id):
                     search_query.lower() in s.get('description', '').lower() or
                     search_query.lower() in s.get('dimensions', '').lower()]
 
-        # If no sizes at all, skip this step
+        # If no sizes at all, skip this step - automatically go to next available step
         if not sizes:
-            return redirect("step4_upholstery", product_id=product_id)
+            next_step = get_next_step('step3_size', product_id)
+            return redirect(next_step, product_id=product_id)
 
         # Add prices to main + sub-options with enhanced handling
         for s in sizes:
@@ -224,7 +229,10 @@ def step3_size(request, product_id):
 
             request.session["size"] = parent_key
             request.session["size_sub"] = sub_key
-            return redirect("step4_upholstery", product_id=product_id)
+            
+            # Use automatic next step detection instead of hardcoded redirect
+            next_step = get_next_step('step3_size', product_id)
+            return redirect(next_step, product_id=product_id)
 
         return render(request, "rfq_app/step3_size.html", {
             "sizes": sizes,
@@ -238,12 +246,9 @@ def step3_size(request, product_id):
     
     except Exception as e:
         logger.error(f"Error in step3_size: {e}")
-        return render(request, "rfq_app/step3_size.html", {
-            "error": "Failed to load size options. Please try again.",
-            "show_search": True,
-            "product_id": product_id
-        })
-
+        # On error, try to go to next step instead of showing error page
+        next_step = get_next_step('step3_size', product_id)
+        return redirect(next_step, product_id=product_id)
 ### STEP 4: Upholstery ###
 def step4_upholstery(request, product_id):
     try:
@@ -259,6 +264,11 @@ def step4_upholstery(request, product_id):
                       search_query.lower() in o.get('description', '').lower() or
                       search_query.lower() in o.get('style', '').lower() or
                       search_query.lower() in o.get('material', '').lower()]
+
+        # Skip step if no upholstery options - automatically go to next available step
+        if not options:
+            next_step = get_next_step('step4_upholstery', product_id)
+            return redirect(next_step, product_id=product_id)
 
         # Add prices for main + sub-options with enhanced handling
         for o in options:
@@ -291,7 +301,10 @@ def step4_upholstery(request, product_id):
 
             request.session["upholstery"] = parent_key
             request.session["upholstery_sub"] = sub_key
-            return redirect("step5_base", product_id=product_id)
+            
+            # Use automatic next step detection instead of hardcoded redirect
+            next_step = get_next_step('step4_upholstery', product_id)
+            return redirect(next_step, product_id=product_id)
 
         return render(request, "rfq_app/step4_upholstery.html", {
             "options": options,
@@ -305,12 +318,9 @@ def step4_upholstery(request, product_id):
     
     except Exception as e:
         logger.error(f"Error in step4_upholstery: {e}")
-        return render(request, "rfq_app/step4_upholstery.html", {
-            "error": "Failed to load upholstery options. Please try again.",
-            "show_search": True,
-            "product_id": product_id
-        })
-
+        # On error, try to go to next step instead of showing error page
+        next_step = get_next_step('step4_upholstery', product_id)
+        return redirect(next_step, product_id=product_id)
 ### STEP 5: Base ###
 def step5_base(request, product_id):
     try:
@@ -326,6 +336,11 @@ def step5_base(request, product_id):
                       search_query.lower() in o.get('description', '').lower() or
                       search_query.lower() in o.get('style', '').lower() or
                       search_query.lower() in o.get('material', '').lower()]
+
+        # Skip step if no base options - automatically go to next available step
+        if not options:
+            next_step = get_next_step('step5_base', product_id)
+            return redirect(next_step, product_id=product_id)
 
         # Add prices for main + sub-options with enhanced handling
         for o in options:
@@ -357,7 +372,10 @@ def step5_base(request, product_id):
 
             request.session["base_option"] = parent_key
             request.session["base_option_sub"] = sub_key
-            return redirect("step6_rails", product_id=product_id)
+            
+            # Use automatic next step detection instead of hardcoded redirect
+            next_step = get_next_step('step5_base', product_id)
+            return redirect(next_step, product_id=product_id)
 
         return render(request, "rfq_app/step5_base.html", {
             "options": options,
@@ -370,12 +388,9 @@ def step5_base(request, product_id):
     
     except Exception as e:
         logger.error(f"Error in step5_base: {e}")
-        return render(request, "rfq_app/step5_base.html", {
-            "error": "Failed to load base options. Please try again.",
-            "show_search": True,
-            "product_id": product_id
-        })
-
+        # On error, try to go to next step instead of showing error page
+        next_step = get_next_step('step5_base', product_id)
+        return redirect(next_step, product_id=product_id)
 ### STEP 6: Rails ###
 def step6_rails(request, product_id):
     try:
@@ -391,6 +406,11 @@ def step6_rails(request, product_id):
                       search_query.lower() in o.get('description', '').lower() or
                       search_query.lower() in o.get('style', '').lower() or
                       search_query.lower() in o.get('material', '').lower()]
+
+        # Skip step if no rail options - automatically go to next available step
+        if not options:
+            next_step = get_next_step('step6_rails', product_id)
+            return redirect(next_step, product_id=product_id)
 
         # Add prices for main + sub-options with enhanced handling
         for o in options:
@@ -422,7 +442,10 @@ def step6_rails(request, product_id):
 
             request.session["rails"] = parent_key
             request.session["rails_sub"] = sub_key
-            return redirect("step7_frame_finish", product_id=product_id)
+            
+            # Use automatic next step detection instead of hardcoded redirect
+            next_step = get_next_step('step6_rails', product_id)
+            return redirect(next_step, product_id=product_id)
 
         return render(request, "rfq_app/step6_rails.html", {
             "options": options,
@@ -435,12 +458,9 @@ def step6_rails(request, product_id):
     
     except Exception as e:
         logger.error(f"Error in step6_rails: {e}")
-        return render(request, "rfq_app/step6_rails.html", {
-            "error": "Failed to load rail options. Please try again.",
-            "show_search": True,
-            "product_id": product_id
-        })
-
+        # On error, try to go to next step instead of showing error page
+        next_step = get_next_step('step6_rails', product_id)
+        return redirect(next_step, product_id=product_id)
 ### STEP 7: Frame Finish ###
 def step7_frame_finish(request, product_id):
     try:
@@ -457,6 +477,11 @@ def step7_frame_finish(request, product_id):
                       search_query.lower() in o.get('finish_type', '').lower() or
                       search_query.lower() in o.get('color', '').lower() or
                       search_query.lower() in o.get('material', '').lower()]
+
+        # Skip step if no frame finish options - automatically go to next available step
+        if not options:
+            next_step = get_next_step('step7_frame_finish', product_id)
+            return redirect(next_step, product_id=product_id)
 
         # Add prices for main + sub-options with enhanced handling
         for o in options:
@@ -488,7 +513,10 @@ def step7_frame_finish(request, product_id):
 
             request.session["frame_finish"] = parent_key
             request.session["frame_finish_sub"] = sub_key
-            return redirect("step8_height", product_id=product_id)
+            
+            # Use automatic next step detection instead of hardcoded redirect
+            next_step = get_next_step('step7_frame_finish', product_id)
+            return redirect(next_step, product_id=product_id)
 
         return render(request, "rfq_app/step7_frame_finish.html", {
             "options": options,
@@ -501,12 +529,9 @@ def step7_frame_finish(request, product_id):
     
     except Exception as e:
         logger.error(f"Error in step7_frame_finish: {e}")
-        return render(request, "rfq_app/step7_frame_finish.html", {
-            "error": "Failed to load frame finish options. Please try again.",
-            "show_search": True,
-            "product_id": product_id
-        })
-
+        # On error, try to go to next step instead of showing error page
+        next_step = get_next_step('step7_frame_finish', product_id)
+        return redirect(next_step, product_id=product_id)
 ### STEP 8: Height ###
 def step8_height(request, product_id):
     try:
@@ -522,6 +547,11 @@ def step8_height(request, product_id):
                       search_query.lower() in o.get('description', '').lower() or
                       search_query.lower() in o.get('height_value', '').lower() or
                       search_query.lower() in o.get('size', '').lower()]
+
+        # Skip step if no height options - automatically go to next available step
+        if not options:
+            next_step = get_next_step('step8_height', product_id)
+            return redirect(next_step, product_id=product_id)
 
         # Add prices for main + sub-options with enhanced handling
         for o in options:
@@ -553,7 +583,10 @@ def step8_height(request, product_id):
 
             request.session["height"] = parent_key
             request.session["height_sub"] = sub_key
-            return redirect("step9_frame_trim", product_id=product_id)
+            
+            # Use automatic next step detection instead of hardcoded redirect
+            next_step = get_next_step('step8_height', product_id)
+            return redirect(next_step, product_id=product_id)
 
         return render(request, "rfq_app/step8_height.html", {
             "options": options,
@@ -566,12 +599,10 @@ def step8_height(request, product_id):
     
     except Exception as e:
         logger.error(f"Error in step8_height: {e}")
-        return render(request, "rfq_app/step8_height.html", {
-            "error": "Failed to load height options. Please try again.",
-            "show_search": True,
-            "product_id": product_id
-        })
-
+        # On error, try to go to next step instead of showing error page
+        next_step = get_next_step('step8_height', product_id)
+        return redirect(next_step, product_id=product_id)
+    ## STEP 9: Frame Trim ###
 ### STEP 9: Frame Trim ###
 def step9_frame_trim(request, product_id):
     try:
@@ -585,11 +616,13 @@ def step9_frame_trim(request, product_id):
                       search_query.lower() in o.get('label', '').lower() or 
                       search_query.lower() in o.get('title', '').lower() or
                       search_query.lower() in o.get('description', '').lower() or
-                      search_query.lower() in o.get('trim_type', '').lower() or
-                      search_query.lower() in o.get('material', '').lower() or
-                      search_query.lower() in o.get('style', '').lower()]
+                      search_query.lower() in o.get('trim_style', '').lower() or
+                      search_query.lower() in o.get('material', '').lower()]
 
-        # Add prices for main + sub-options with enhanced handling
+        # Skip step if no frame trim options - automatically go to next available step
+        if not options:
+            next_step = get_next_step('step9_frame_trim', product_id)
+            return redirect(next_step, product_id=product_id)
 
         # Add prices for main + sub-options with enhanced handling
         for o in options:
@@ -621,7 +654,10 @@ def step9_frame_trim(request, product_id):
 
             request.session["frame_trim"] = parent_key
             request.session["frame_trim_sub"] = sub_key
-            return redirect("step10_customer_info", product_id=product_id)
+            
+            # Use automatic next step detection instead of hardcoded redirect
+            next_step = get_next_step('step9_frame_trim', product_id)
+            return redirect(next_step, product_id=product_id)
 
         return render(request, "rfq_app/step9_frame_trim.html", {
             "options": options,
@@ -634,14 +670,14 @@ def step9_frame_trim(request, product_id):
     
     except Exception as e:
         logger.error(f"Error in step9_frame_trim: {e}")
-        return render(request, "rfq_app/step9_frame_trim.html", {
-            "error": "Failed to load frame trim options. Please try again.",
-            "show_search": True,
-            "product_id": product_id
-        })
-
+        # On error, try to go to next step instead of showing error page
+        next_step = get_next_step('step9_frame_trim', product_id)
+        return redirect(next_step, product_id=product_id)
 ### STEP 10: Customer Info ###
 def step10_customer_info(request, product_id):
+    # Calculate running total once to use in both GET and POST scenarios
+    running_total = get_running_total(request, product_id)
+    
     if request.method == "POST":
         name = request.POST.get("name", "").strip()
         email = request.POST.get("email", "").strip()
@@ -651,13 +687,15 @@ def step10_customer_info(request, product_id):
         if not name:
             return render(request, "rfq_app/step10.html", {
                 "error": "Please enter your name.",
-                "product_id": product_id
+                "product_id": product_id,
+                "running_total": running_total  # Add running total to error context
             })
         
         if not email or "@" not in email:
             return render(request, "rfq_app/step10.html", {
                 "error": "Please enter a valid email address.",
-                "product_id": product_id
+                "product_id": product_id,
+                "running_total": running_total  # Add running total to error context
             })
 
         request.session["customer_name"] = name
@@ -757,21 +795,20 @@ def step10_customer_info(request, product_id):
             logger.error(f"Error sending email in step10: {e}")
             return render(request, "rfq_app/step10.html", {
                 "error": "Failed to send your request. Please try again.",
-                "product_id": product_id
+                "product_id": product_id,
+                "running_total": running_total  # Add running total to error context
             })
 
     # GET → customer form
     return render(request, "rfq_app/step10.html", {
-        "running_total": get_running_total(request, product_id),
+        "running_total": running_total,
         "product_id": product_id
     })
-
-### Summary Views ###
 def rfq_summary(request, product_id):
     try:
         base_price = safe_price(get_product_price(product_id))
 
-        # Use helper for all options
+        # Use helper for all options - handle None results gracefully
         selected_fabric, fabric_price = get_selected_option(get_fabrics, "fabric", product_id, request, safe_price)
         selected_size, size_price = get_selected_option(get_size, "size", product_id, request, safe_price)
         selected_upholstery, upholstery_price = get_selected_option(get_upholstery_style, "upholstery", product_id, request, safe_price)
@@ -781,12 +818,11 @@ def rfq_summary(request, product_id):
         selected_height, height_price = get_selected_option(get_heights, "height", product_id, request, safe_price)
         selected_trim, trim_price = get_selected_option(get_frame_trim, "frame_trim", product_id, request, safe_price)
 
-        # Total
-        total = (
-            base_price + fabric_price + size_price + upholstery_price +
-            base_option_price + rails_price + finish_price +
-            height_price + trim_price
-        )
+        # Total - ensure all prices are valid numbers
+        total = base_price
+        for price in [fabric_price, size_price, upholstery_price, base_option_price, 
+                     rails_price, finish_price, height_price, trim_price]:
+            total += price if price else 0
 
         context = {
             "product_id": product_id,
@@ -814,7 +850,6 @@ def rfq_summary(request, product_id):
             "error": "Failed to load summary. Please try again.",
             "product_id": product_id
         })
-
 def rfq_summary_pdf(request, product_id):
     try:
         base_price = safe_price(get_product_price(product_id))
@@ -854,11 +889,11 @@ def rfq_summary_pdf(request, product_id):
         height = find_selected(get_heights(product_id) or [], request.session.get("height"), request.session.get("height_sub"))
         frame_trim = find_selected(get_frame_trim(product_id) or [], request.session.get("frame_trim"), request.session.get("frame_trim_sub"))
 
-        # Calculate total
+        # Calculate total - handle None values gracefully
         total = base_price
         for choice in [fabric, size, upholstery, base_option, rails, frame_finish, height, frame_trim]:
             if choice:
-                total += choice.get("price", 0) + choice.get("sub_price", 0)
+                total += (choice.get("price", 0) or 0) + (choice.get("sub_price", 0) or 0)
 
         context = {
             "product_id": product_id,
@@ -880,16 +915,23 @@ def rfq_summary_pdf(request, product_id):
         # Use the SAME template as email for consistency
         pdf = render_to_pdf("rfq_app/email_summary.html", context)
         if pdf:
+            # Create a filename with customer name and timestamp if available
+            customer_name = request.session.get("customer_name", "").replace(" ", "_")
+            timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+            filename = f"RFQ_Summary_{customer_name}_{timestamp}.pdf" if customer_name else "RFQ_Summary.pdf"
+            
             response = HttpResponse(pdf, content_type="application/pdf")
-            response["Content-Disposition"] = "attachment; filename=RFQ_Summary.pdf"
+            response["Content-Disposition"] = f'attachment; filename="{filename}"'
             return response
+        
+        logger.error("Failed to generate PDF - render_to_pdf returned None")
         return HttpResponse("Error generating PDF", status=500)
     
     except Exception as e:
         logger.error(f"Error in rfq_summary_pdf: {e}")
         return HttpResponse("Error generating PDF", status=500)
 def start_rfq_from_shopify(request):
-    """Start RFQ process from Shopify product link"""
+    """Start RFQ process from Shopify product link with automatic step detection"""
     shopify_product_id = request.GET.get('shopify_product_id')
     product_title = request.GET.get('product_title', '')
     product_price = request.GET.get('product_price', '0')
@@ -908,8 +950,134 @@ def start_rfq_from_shopify(request):
         # Store the product ID in session for backward compatibility
         request.session['product_id'] = shopify_product_id
         
-        # Redirect to the first step of your RFQ process with product_id in URL
-        return redirect('step2_fabrics', product_id=shopify_product_id)
+        # Find the first available step with options
+        step_order = [
+            ('step2_fabrics', get_fabrics),
+            ('step3_size', get_size),
+            ('step4_upholstery', get_upholstery_style),
+            ('step5_base', get_base_option),
+            ('step6_rails', get_rails),
+            ('step7_frame_finish', get_frame_finish),
+            ('step8_height', get_heights),
+            ('step9_frame_trim', get_frame_trim),
+            ('step10_customer_info', None),  # Always available as fallback
+        ]
+        
+        # Find first step with available options
+        for step_name, option_function in step_order:
+            if step_name == 'step10_customer_info':
+                # If we reach customer info, use it as fallback
+                break
+                
+            # Check if this step has options
+            try:
+                options = option_function(shopify_product_id) if option_function else []
+                if options:
+                    # Found a step with options, redirect to it
+                    return redirect(step_name, product_id=shopify_product_id)
+            except Exception as e:
+                logger.error(f"Error checking options for {step_name}: {e}")
+                # If there's an error checking options, continue to next step
+                continue
+        
+        # If no steps with options found, go directly to customer info
+        return redirect('step10_customer_info', product_id=shopify_product_id)
     
     # If no product ID provided, go to normal start
     return redirect('step1_select_product')
+def get_next_step(current_step, product_id):
+    """
+    Determine the next available step based on which options are available
+    Returns the next step URL name
+    """
+    step_order = [
+        ('step2_fabrics', get_fabrics),
+        ('step3_size', get_size),
+        ('step4_upholstery', get_upholstery_style),
+        ('step5_base', get_base_option),
+        ('step6_rails', get_rails),
+        ('step7_frame_finish', get_frame_finish),
+        ('step8_height', get_heights),
+        ('step9_frame_trim', get_frame_trim),
+        ('step10_customer_info', None),  # Always show customer info step
+    ]
+    
+    # Find current step index
+    current_index = None
+    for i, (step_name, _) in enumerate(step_order):
+        if step_name == current_step:
+            current_index = i
+            break
+    
+    if current_index is None:
+        logger.warning(f"Current step '{current_step}' not found in step order. Defaulting to customer info.")
+        return 'step10_customer_info'  # Default to last step
+    
+    # Find next step with available options
+    for i in range(current_index + 1, len(step_order)):
+        step_name, option_function = step_order[i]
+        
+        # Customer info is always available
+        if step_name == 'step10_customer_info':
+            return step_name
+        
+        # Check if this step has options (with error handling)
+        try:
+            options = option_function(product_id) if option_function else []
+            if options:  # If options exist, go to this step
+                return step_name
+        except Exception as e:
+            logger.error(f"Error checking options for {step_name} with product {product_id}: {e}")
+            # If there's an error checking options, continue to next step
+            continue
+    
+    # If no more steps with options, go to customer info
+    return 'step10_customer_info'
+def get_next_step(current_step, product_id):
+    """
+    Determine the next available step based on which options are available
+    Returns the next step URL name
+    """
+    step_order = [
+        ('step2_fabrics', get_fabrics),
+        ('step3_size', get_size),
+        ('step4_upholstery', get_upholstery_style),
+        ('step5_base', get_base_option),
+        ('step6_rails', get_rails),
+        ('step7_frame_finish', get_frame_finish),
+        ('step8_height', get_heights),
+        ('step9_frame_trim', get_frame_trim),
+        ('step10_customer_info', None),  # Always show customer info step
+    ]
+    
+    # Find current step index
+    current_index = None
+    for i, (step_name, _) in enumerate(step_order):
+        if step_name == current_step:
+            current_index = i
+            break
+    
+    if current_index is None:
+        logger.warning(f"Current step '{current_step}' not found in step order. Defaulting to customer info.")
+        return 'step10_customer_info'  # Default to last step
+    
+    # Find next step with available options
+    for i in range(current_index + 1, len(step_order)):
+        step_name, option_function = step_order[i]
+        
+        # Customer info is always available
+        if step_name == 'step10_customer_info':
+            return step_name
+        
+        # Check if this step has options (with robust error handling)
+        try:
+            options = option_function(product_id) if option_function else []
+            if options and any(options):  # If options exist and are not empty, go to this step
+                return step_name
+        except Exception as e:
+            logger.error(f"Error checking options for {step_name} with product {product_id}: {e}")
+            # If there's an error checking options, continue to next step
+            continue
+    
+    # If no more steps with options, go to customer info
+    return 'step10_customer_info'
