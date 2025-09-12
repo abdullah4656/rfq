@@ -40,8 +40,8 @@ def clear_rfq_session(request):
         if key in request.session:
             del request.session[key]
 
-def get_running_total(request, product_id, current_step_data=None):
-    """Calculate running total with all selected options, including current step if provided"""
+def get_running_total(request, product_id, current_options=None):
+    """Calculate running total with all selected options"""
     base_price = safe_price(get_product_price(product_id))
     total = base_price
     
@@ -58,35 +58,24 @@ def get_running_total(request, product_id, current_step_data=None):
     ]
     
     for get_func, main_key, sub_key in option_functions:
-        # Check if this is the current step and we have temporary data
-        if current_step_data and main_key == current_step_data.get('main_key'):
-            main_option = current_step_data.get('main_option')
+        main_val = request.session.get(main_key)
+        if main_val:
+            options = get_func(product_id) or []
+            main_option = next((o for o in options if o.get("key") == main_val), None)
             if main_option:
+                # Handle different price field names
                 upcharge = main_option.get("upcharge_cents") or main_option.get("upcharge") or main_option.get("price") or 0
                 total += safe_price(upcharge)
                 
-                sub_option = current_step_data.get('sub_option')
-                if sub_option:
-                    sub_upcharge = sub_option.get("upcharge_cents") or sub_option.get("upcharge") or sub_option.get("price") or 0
-                    total += safe_price(sub_upcharge)
-        else:
-            # Normal processing for already selected options
-            main_val = request.session.get(main_key)
-            if main_val:
-                options = get_func(product_id) or []
-                main_option = next((o for o in options if o.get("key") == main_val), None)
-                if main_option:
-                    upcharge = main_option.get("upcharge_cents") or main_option.get("upcharge") or main_option.get("price") or 0
-                    total += safe_price(upcharge)
-                    
-                    sub_val = request.session.get(sub_key)
-                    if sub_val and main_option.get("sub_options"):
-                        sub_option = next((s for s in main_option["sub_options"] if s.get("key") == sub_val), None)
-                        if sub_option:
-                            sub_upcharge = sub_option.get("upcharge_cents") or sub_option.get("upcharge") or sub_option.get("price") or 0
-                            total += safe_price(sub_upcharge)
+                sub_val = request.session.get(sub_key)
+                if sub_val and main_option.get("sub_options"):
+                    sub_option = next((s for s in main_option["sub_options"] if s.get("key") == sub_val), None)
+                    if sub_option:
+                        sub_upcharge = sub_option.get("upcharge_cents") or sub_option.get("upcharge") or sub_option.get("price") or 0
+                        total += safe_price(sub_upcharge)
     
     return total
+
 ### STEP 1: Select Product ###
 def step1_select_product(request):
     try:
@@ -146,46 +135,18 @@ def step2_fabrics(request, product_id):
                 sub_upcharge = sub.get("upcharge_cents") or sub.get("upcharge") or sub.get("price") or 0
                 sub["price"] = safe_price(sub_upcharge)
 
-        # Check if there's a fabric selected in the current request (for running total)
-        current_fabric_data = None
-        fabric_key = request.POST.get("fabric") or request.session.get("fabric")
-        if fabric_key:
-            if "-" in fabric_key:
-                parent_key, sub_key = fabric_key.split("-", 1)
-            else:
-                parent_key, sub_key = fabric_key, None
-            
-            # Find the selected fabric
-            selected_fabric = next((f for f in fabrics if f.get("key") == parent_key), None)
-            if selected_fabric:
-                current_fabric_data = {
-                    'main_key': 'fabric',
-                    'main_option': selected_fabric,
-                    'sub_option': None
-                }
-                
-                # Find sub-option if exists
-                if sub_key and selected_fabric.get("sub_options"):
-                    sub_option = next((s for s in selected_fabric["sub_options"] if s.get("key") == sub_key), None)
-                    if sub_option:
-                        current_fabric_data['sub_option'] = sub_option
-
-        # Calculate running total including current fabric selection
-        running_total = get_running_total(request, product_id, current_fabric_data)
-
         if request.method == "POST":
             selected = request.POST.get("fabric")
             if not selected:
                 return render(request, "rfq_app/step2_fabrics.html", {
                     "fabrics": fabrics,
                     "base_price": base_price,
-                    "running_total": running_total,  # Use the calculated running total
+                    "running_total": get_running_total(request, product_id),
                     "error": "Please select a fabric to continue.",
                     "search_query": search_query,
                     "show_search": True,
                     "options": fabrics,
-                    "product_id": product_id,
-                    "is_optional": False  # Fabric is mandatory
+                    "product_id": product_id
                 })
 
             # Handle sub-options: "ParentKey-SubKey"
@@ -203,13 +164,12 @@ def step2_fabrics(request, product_id):
 
         return render(request, "rfq_app/step2_fabrics.html", {
             "fabrics": fabrics,
-            "running_total": running_total,  # Use the calculated running total
+            "running_total": get_running_total(request, product_id),
             "base_price": base_price,
             "search_query": search_query,
             "show_search": True,
             "options": fabrics,
-            "product_id": product_id,
-            "is_optional": False  # Fabric is mandatory
+            "product_id": product_id
         })
     
     except Exception as e:
@@ -217,6 +177,7 @@ def step2_fabrics(request, product_id):
         # On error, try to go to next step instead of showing error page
         next_step = get_next_step('step2_fabrics', product_id)
         return redirect(next_step, product_id=product_id)
+
 ### STEP 3: Size (OPTIONAL - With Skip Button) ###
 def step3_size(request, product_id):
     try:
