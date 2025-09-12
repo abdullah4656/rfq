@@ -336,25 +336,7 @@
                 <h2 class="mb-3">{% block heading %}Custom Furniture Quote{% endblock %}</h2>
                 
                 <!-- Search Bar - Will be shown if show_search is True -->
-                {% if show_search %}
-                <div class="search-form">
-                    <form method="get" id="search-form">
-                        <div class="input-group">
-                            <input type="text" name="search" class="form-control" 
-                                   placeholder="{% block search_placeholder %}Search options...{% endblock %}" 
-                                   value="{{ search_query }}">
-                            <button type="submit" class="btn btn-primary" id="search-btn">
-                                <i class="fas fa-search"></i>
-                            </button>
-                            {% if search_query %}
-                            <a href="?" class="btn btn-outline-secondary">
-                                <i class="fas fa-times"></i> Clear
-                            </a>
-                            {% endif %}
-                        </div>
-                    </form>
-                </div>
-                {% endif %}
+             
                 {% if show_search %}
 <div class="search-form mb-3">
     <!-- keep this form standalone -->
