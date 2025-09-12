@@ -214,8 +214,8 @@ def step3_size(request, product_id):
             # Check if user clicked skip button
             if 'skip' in request.POST:
                 # Clear any previous selection for size
-                request.session['option_key'] = None
-                request.session['option_key_sub'] = None
+                request.session['size'] = None
+                request.session['size_sub'] = None
 
                 
                 # Redirect to next step
@@ -299,8 +299,8 @@ def step4_upholstery(request, product_id):
             # Check if user clicked skip button
             if 'skip' in request.POST:
                 # Clear any previous selection for upholstery
-                request.session['option_key'] = None
-                request.session['option_key_sub'] = None
+                request.session['upholstery'] = None
+                request.session['upholstery_sub'] = None
 
                 
                 # Redirect to next step
@@ -385,8 +385,8 @@ def step5_base(request, product_id):
             # Check if user clicked skip button
             if 'skip' in request.POST:
                 # Clear any previous selection for base
-                request.session['option_key'] = None
-                request.session['option_key_sub'] = None
+                request.session['base_option'] = None
+                request.session['base_option_sub'] = None
 
                 
                 # Redirect to next step
@@ -469,8 +469,8 @@ def step6_rails(request, product_id):
             # Check if user clicked skip button
             if 'skip' in request.POST:
                 # Clear any previous selection for rails
-                request.session['option_key'] = None
-                request.session['option_key_sub'] = None
+                request.session['rails'] = None
+                request.session['rails_sub'] = None
 
                 
                 # Redirect to next step
@@ -554,8 +554,8 @@ def step7_frame_finish(request, product_id):
             # Check if user clicked skip button
             if 'skip' in request.POST:
                 # Clear any previous selection for frame finish
-                request.session['option_key'] = None
-                request.session['option_key_sub'] = None
+                request.session['frame_finish'] = None
+                request.session['frame_finish_sub'] = None
 
                 
                 # Redirect to next step
@@ -638,8 +638,8 @@ def step8_height(request, product_id):
             # Check if user clicked skip button
             if 'skip' in request.POST:
                 # Clear any previous selection for height
-                request.session['option_key'] = None
-                request.session['option_key_sub'] = None
+                request.session['height'] = None
+                request.session['height_sub'] = None
 
                 
                 # Redirect to next step
@@ -722,8 +722,8 @@ def step9_frame_trim(request, product_id):
             # Check if user clicked skip button
             if 'skip' in request.POST:
                 # Clear any previous selection for frame trim
-                request.session['option_key'] = None
-                request.session['option_key_sub'] = None
+                request.session['frame_trim'] = None
+                request.session['frame_trim_sub'] = None
 
                             
                 # Redirect to next step
