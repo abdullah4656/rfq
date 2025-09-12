@@ -146,7 +146,8 @@ def step2_fabrics(request, product_id):
                     "search_query": search_query,
                     "show_search": True,
                     "options": fabrics,
-                    "product_id": product_id
+                    "product_id": product_id,
+                    "is_optional": False  # Fabric is mandatory
                 })
 
             # Handle sub-options: "ParentKey-SubKey"
@@ -169,7 +170,8 @@ def step2_fabrics(request, product_id):
             "search_query": search_query,
             "show_search": True,
             "options": fabrics,
-            "product_id": product_id
+            "product_id": product_id,
+            "is_optional": False  # Fabric is mandatory
         })
     
     except Exception as e:
