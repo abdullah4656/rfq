@@ -91,9 +91,17 @@
                 <a href="{% url 'step5_base' product_id=product_id %}" class="btn btn-outline-primary">
                     <i class="fas fa-arrow-left me-2"></i> Back to Base
                 </a>
-                <button type="submit" class="btn btn-primary">
-                    Continue to Frame Finish <i class="fas fa-arrow-right ms-2"></i>
-                </button>
+                               <div>
+                    <!-- Skip button for optional steps -->
+                    <button type="submit" name="skip" value="skip" class="btn btn-outline-secondary me-2">
+                        <i class="fas fa-forward me-2"></i> Skip Size
+                    </button>
+                    
+                    <button type="submit" class="btn btn-primary">
+                        Continue to Upholstery <i class="fas fa-arrow-right ms-2"></i>
+                    </button>
+                </div>
+
             </div>
         </div>
     </div>
