@@ -25,14 +25,13 @@ logger = logging.getLogger(__name__)
 COLLECTION_ID = "296548499652"
 
 # Session keys for RFQ data
-# Add Shopify-specific keys to your session management
 RFQ_SESSION_KEYS = [
     'product_id', 'fabric', 'fabric_sub', 'size', 'size_sub',
     'upholstery', 'upholstery_sub', 'base_option', 'base_option_sub',
     'rails', 'rails_sub', 'frame_finish', 'frame_finish_sub',
     'height', 'height_sub', 'frame_trim', 'frame_trim_sub',
     'customer_name', 'customer_email', 'notes',
-    'shopify_product_id', 'product_title', 'product_price', 'product_image'  # Add these
+    'shopify_product_id', 'product_title', 'product_price', 'product_image'
 ]
 
 def clear_rfq_session(request):
@@ -77,7 +76,7 @@ def get_running_total(request, product_id, current_options=None):
     
     return total
 
-### STEP 1: Select Product (Optional - can be kept as entry point) ###
+### STEP 1: Select Product ###
 def step1_select_product(request):
     try:
         products = get_products_from_collection(COLLECTION_ID)
@@ -106,7 +105,7 @@ def step1_select_product(request):
             "error": "Failed to load products. Please try again."
         })
 
-### STEP 2: Fabrics ###
+### STEP 2: Fabrics (MANDATORY - No Skip Button) ###
 def step2_fabrics(request, product_id):
     try:
         base_price = safe_price(get_product_price(product_id))
@@ -147,7 +146,8 @@ def step2_fabrics(request, product_id):
                     "search_query": search_query,
                     "show_search": True,
                     "options": fabrics,
-                    "product_id": product_id
+                    "product_id": product_id,
+                    "is_optional": False  # Fabric is mandatory
                 })
 
             # Handle sub-options: "ParentKey-SubKey"
@@ -170,7 +170,8 @@ def step2_fabrics(request, product_id):
             "search_query": search_query,
             "show_search": True,
             "options": fabrics,
-            "product_id": product_id
+            "product_id": product_id,
+            "is_optional": False  # Fabric is mandatory
         })
     
     except Exception as e:
@@ -179,7 +180,7 @@ def step2_fabrics(request, product_id):
         next_step = get_next_step('step2_fabrics', product_id)
         return redirect(next_step, product_id=product_id)
 
-### STEP 3: Size ###
+### STEP 3: Size (OPTIONAL - With Skip Button) ###
 def step3_size(request, product_id):
     try:
         base_price = safe_price(get_product_price(product_id))
@@ -210,16 +211,28 @@ def step3_size(request, product_id):
                 sub["price"] = safe_price(sub_upcharge)
 
         if request.method == "POST":
+            # Check if user clicked skip button
+            if 'skip' in request.POST:
+                # Clear any previous selection for size
+                request.session['option_key'] = None
+                request.session['option_key_sub'] = None
+
+                
+                # Redirect to next step
+                next_step = get_next_step('step3_size', product_id)
+                return redirect(next_step, product_id=product_id)
+                
             selected = request.POST.get("size")
             if not selected:
                 return render(request, "rfq_app/step3_size.html", {
                     "sizes": sizes,
-                    "error": "Please select a size.",
+                    "error": "Please select a size or click skip to continue.",
                     "running_total": get_running_total(request, product_id),
                     "search_query": search_query,
                     "show_search": True,
                     "options": sizes,
-                    "product_id": product_id
+                    "product_id": product_id,
+                    "is_optional": True  # Size is optional
                 })
 
             if "-" in selected:
@@ -241,7 +254,8 @@ def step3_size(request, product_id):
             "search_query": search_query,
             "show_search": True,
             "options": sizes,
-            "product_id": product_id
+            "product_id": product_id,
+            "is_optional": True  # Size is optional
         })
     
     except Exception as e:
@@ -249,7 +263,8 @@ def step3_size(request, product_id):
         # On error, try to go to next step instead of showing error page
         next_step = get_next_step('step3_size', product_id)
         return redirect(next_step, product_id=product_id)
-### STEP 4: Upholstery ###
+
+### STEP 4: Upholstery (OPTIONAL - With Skip Button) ###
 def step4_upholstery(request, product_id):
     try:
         options = get_upholstery_style(product_id) or []
@@ -281,16 +296,28 @@ def step4_upholstery(request, product_id):
                 sub["price"] = safe_price(sub_upcharge)
 
         if request.method == "POST":
+            # Check if user clicked skip button
+            if 'skip' in request.POST:
+                # Clear any previous selection for upholstery
+                request.session['option_key'] = None
+                request.session['option_key_sub'] = None
+
+                
+                # Redirect to next step
+                next_step = get_next_step('step4_upholstery', product_id)
+                return redirect(next_step, product_id=product_id)
+                
             selected = request.POST.get("upholstery")
             if not selected:
                 return render(request, "rfq_app/step4_upholstery.html", {
                     "options": options,
-                    "error": "Please select an upholstery style.",
+                    "error": "Please select an upholstery style or click skip to continue.",
                     "running_total": get_running_total(request, product_id),
                     "search_query": search_query,
                     "show_search": True,
                     "options_list": options,
-                    "product_id": product_id
+                    "product_id": product_id,
+                    "is_optional": True  # Upholstery is optional
                 })
 
             # Split parent / sub-option if needed
@@ -313,7 +340,8 @@ def step4_upholstery(request, product_id):
             "search_query": search_query,
             "show_search": True,
             "options_list": options,
-            "product_id": product_id
+            "product_id": product_id,
+            "is_optional": True  # Upholstery is optional
         })
     
     except Exception as e:
@@ -321,7 +349,8 @@ def step4_upholstery(request, product_id):
         # On error, try to go to next step instead of showing error page
         next_step = get_next_step('step4_upholstery', product_id)
         return redirect(next_step, product_id=product_id)
-### STEP 5: Base ###
+
+### STEP 5: Base (OPTIONAL - With Skip Button) ###
 def step5_base(request, product_id):
     try:
         options = get_base_option(product_id) or []
@@ -353,15 +382,27 @@ def step5_base(request, product_id):
                 sub["price"] = safe_price(sub_upcharge)
 
         if request.method == "POST":
+            # Check if user clicked skip button
+            if 'skip' in request.POST:
+                # Clear any previous selection for base
+                request.session['option_key'] = None
+                request.session['option_key_sub'] = None
+
+                
+                # Redirect to next step
+                next_step = get_next_step('step5_base', product_id)
+                return redirect(next_step, product_id=product_id)
+                
             selected = request.POST.get("base")
             if not selected:
                 return render(request, "rfq_app/step5_base.html", {
                     "options": options,
-                    "error": "Please select a base option.",
+                    "error": "Please select a base option or click skip to continue.",
                     "running_total": get_running_total(request, product_id),
                     "search_query": search_query,
                     "show_search": True,
-                    "product_id": product_id
+                    "product_id": product_id,
+                    "is_optional": True  # Base is optional
                 })
 
             # Split parent / sub-option if needed
@@ -383,7 +424,8 @@ def step5_base(request, product_id):
             "base_price": base_price,
             "search_query": search_query,
             "show_search": True,
-            "product_id": product_id
+            "product_id": product_id,
+            "is_optional": True  # Base is optional
         })
     
     except Exception as e:
@@ -391,7 +433,8 @@ def step5_base(request, product_id):
         # On error, try to go to next step instead of showing error page
         next_step = get_next_step('step5_base', product_id)
         return redirect(next_step, product_id=product_id)
-### STEP 6: Rails ###
+
+### STEP 6: Rails (OPTIONAL - With Skip Button) ###
 def step6_rails(request, product_id):
     try:
         options = get_rails(product_id) or []
@@ -423,15 +466,27 @@ def step6_rails(request, product_id):
                 sub["price"] = safe_price(sub_upcharge)
 
         if request.method == "POST":
+            # Check if user clicked skip button
+            if 'skip' in request.POST:
+                # Clear any previous selection for rails
+                request.session['option_key'] = None
+                request.session['option_key_sub'] = None
+
+                
+                # Redirect to next step
+                next_step = get_next_step('step6_rails', product_id)
+                return redirect(next_step, product_id=product_id)
+                
             selected = request.POST.get("rails")
             if not selected:
                 return render(request, "rfq_app/step6_rails.html", {
                     "options": options,
-                    "error": "Please select a rail option.",
+                    "error": "Please select a rail option or click skip to continue.",
                     "running_total": get_running_total(request, product_id),
                     "search_query": search_query,
                     "show_search": True,
-                    "product_id": product_id
+                    "product_id": product_id,
+                    "is_optional": True  # Rails are optional
                 })
 
             # Split parent / sub-option if needed
@@ -453,7 +508,8 @@ def step6_rails(request, product_id):
             "base_price": base_price,
             "search_query": search_query,
             "show_search": True,
-            "product_id": product_id
+            "product_id": product_id,
+            "is_optional": True  # Rails are optional
         })
     
     except Exception as e:
@@ -461,7 +517,8 @@ def step6_rails(request, product_id):
         # On error, try to go to next step instead of showing error page
         next_step = get_next_step('step6_rails', product_id)
         return redirect(next_step, product_id=product_id)
-### STEP 7: Frame Finish ###
+
+### STEP 7: Frame Finish (OPTIONAL - With Skip Button) ###
 def step7_frame_finish(request, product_id):
     try:
         options = get_frame_finish(product_id) or []
@@ -494,15 +551,27 @@ def step7_frame_finish(request, product_id):
                 sub["price"] = safe_price(sub_upcharge)
 
         if request.method == "POST":
+            # Check if user clicked skip button
+            if 'skip' in request.POST:
+                # Clear any previous selection for frame finish
+                request.session['option_key'] = None
+                request.session['option_key_sub'] = None
+
+                
+                # Redirect to next step
+                next_step = get_next_step('step7_frame_finish', product_id)
+                return redirect(next_step, product_id=product_id)
+                
             selected = request.POST.get("frame_finish")
             if not selected:
                 return render(request, "rfq_app/step7_frame_finish.html", {
                     "options": options,
-                    "error": "Please select a frame finish.",
+                    "error": "Please select a frame finish or click skip to continue.",
                     "running_total": get_running_total(request, product_id),
                     "search_query": search_query,
                     "show_search": True,
-                    "product_id": product_id
+                    "product_id": product_id,
+                    "is_optional": True  # Frame finish is optional
                 })
 
             # Handle parent / sub-option split
@@ -524,7 +593,8 @@ def step7_frame_finish(request, product_id):
             "base_price": base_price,
             "search_query": search_query,
             "show_search": True,
-            "product_id": product_id
+            "product_id": product_id,
+            "is_optional": True  # Frame finish is optional
         })
     
     except Exception as e:
@@ -532,7 +602,8 @@ def step7_frame_finish(request, product_id):
         # On error, try to go to next step instead of showing error page
         next_step = get_next_step('step7_frame_finish', product_id)
         return redirect(next_step, product_id=product_id)
-### STEP 8: Height ###
+
+### STEP 8: Height (OPTIONAL - With Skip Button) ###
 def step8_height(request, product_id):
     try:
         options = get_heights(product_id) or []
@@ -564,15 +635,27 @@ def step8_height(request, product_id):
                 sub["price"] = safe_price(sub_upcharge)
 
         if request.method == "POST":
+            # Check if user clicked skip button
+            if 'skip' in request.POST:
+                # Clear any previous selection for height
+                request.session['option_key'] = None
+                request.session['option_key_sub'] = None
+
+                
+                # Redirect to next step
+                next_step = get_next_step('step8_height', product_id)
+                return redirect(next_step, product_id=product_id)
+                
             selected = request.POST.get("height")
             if not selected:
                 return render(request, "rfq_app/step8_height.html", {
                     "options": options,
-                    "error": "Please select a height option.",
+                    "error": "Please select a height option or click skip to continue.",
                     "running_total": get_running_total(request, product_id),
                     "search_query": search_query,
                     "show_search": True,
-                    "product_id": product_id
+                    "product_id": product_id,
+                    "is_optional": True  # Height is optional
                 })
 
             # Handle parent / sub-option
@@ -594,7 +677,8 @@ def step8_height(request, product_id):
             "base_price": base_price,
             "search_query": search_query,
             "show_search": True,
-            "product_id": product_id
+            "product_id": product_id,
+            "is_optional": True  # Height is optional
         })
     
     except Exception as e:
@@ -602,8 +686,8 @@ def step8_height(request, product_id):
         # On error, try to go to next step instead of showing error page
         next_step = get_next_step('step8_height', product_id)
         return redirect(next_step, product_id=product_id)
-    ## STEP 9: Frame Trim ###
-### STEP 9: Frame Trim ###
+
+### STEP 9: Frame Trim (OPTIONAL - With Skip Button) ###
 def step9_frame_trim(request, product_id):
     try:
         options = get_frame_trim(product_id) or []
@@ -635,15 +719,27 @@ def step9_frame_trim(request, product_id):
                 sub["price"] = safe_price(sub_upcharge)
 
         if request.method == "POST":
+            # Check if user clicked skip button
+            if 'skip' in request.POST:
+                # Clear any previous selection for frame trim
+                request.session['option_key'] = None
+                request.session['option_key_sub'] = None
+
+                            
+                # Redirect to next step
+                next_step = get_next_step('step9_frame_trim', product_id)
+                return redirect(next_step, product_id=product_id)
+                
             selected = request.POST.get("frame_trim")
             if not selected:
                 return render(request, "rfq_app/step9_frame_trim.html", {
                     "options": options,
-                    "error": "Please select a frame trim option.",
+                    "error": "Please select a frame trim option or click skip to continue.",
                     "running_total": get_running_total(request, product_id),
                     "search_query": search_query,
                     "show_search": True,
-                    "product_id": product_id
+                    "product_id": product_id,
+                    "is_optional": True  # Frame trim is optional
                 })
 
             # Handle parent / sub-option
@@ -665,7 +761,8 @@ def step9_frame_trim(request, product_id):
             "base_price": base_price,
             "search_query": search_query,
             "show_search": True,
-            "product_id": product_id
+            "product_id": product_id,
+            "is_optional": True  # Frame trim is optional
         })
     
     except Exception as e:
@@ -673,6 +770,7 @@ def step9_frame_trim(request, product_id):
         # On error, try to go to next step instead of showing error page
         next_step = get_next_step('step9_frame_trim', product_id)
         return redirect(next_step, product_id=product_id)
+
 ### STEP 10: Customer Info ###
 def step10_customer_info(request, product_id):
     # Calculate running total once to use in both GET and POST scenarios
@@ -804,6 +902,7 @@ def step10_customer_info(request, product_id):
         "running_total": running_total,
         "product_id": product_id
     })
+
 def rfq_summary(request, product_id):
     try:
         base_price = safe_price(get_product_price(product_id))
@@ -850,6 +949,7 @@ def rfq_summary(request, product_id):
             "error": "Failed to load summary. Please try again.",
             "product_id": product_id
         })
+
 def rfq_summary_pdf(request, product_id):
     try:
         base_price = safe_price(get_product_price(product_id))
@@ -930,6 +1030,7 @@ def rfq_summary_pdf(request, product_id):
     except Exception as e:
         logger.error(f"Error in rfq_summary_pdf: {e}")
         return HttpResponse("Error generating PDF", status=500)
+
 def start_rfq_from_shopify(request):
     """Start RFQ process from Shopify product link with automatic step detection"""
     shopify_product_id = request.GET.get('shopify_product_id')
@@ -985,54 +1086,7 @@ def start_rfq_from_shopify(request):
     
     # If no product ID provided, go to normal start
     return redirect('step1_select_product')
-def get_next_step(current_step, product_id):
-    """
-    Determine the next available step based on which options are available
-    Returns the next step URL name
-    """
-    step_order = [
-        ('step2_fabrics', get_fabrics),
-        ('step3_size', get_size),
-        ('step4_upholstery', get_upholstery_style),
-        ('step5_base', get_base_option),
-        ('step6_rails', get_rails),
-        ('step7_frame_finish', get_frame_finish),
-        ('step8_height', get_heights),
-        ('step9_frame_trim', get_frame_trim),
-        ('step10_customer_info', None),  # Always show customer info step
-    ]
-    
-    # Find current step index
-    current_index = None
-    for i, (step_name, _) in enumerate(step_order):
-        if step_name == current_step:
-            current_index = i
-            break
-    
-    if current_index is None:
-        logger.warning(f"Current step '{current_step}' not found in step order. Defaulting to customer info.")
-        return 'step10_customer_info'  # Default to last step
-    
-    # Find next step with available options
-    for i in range(current_index + 1, len(step_order)):
-        step_name, option_function = step_order[i]
-        
-        # Customer info is always available
-        if step_name == 'step10_customer_info':
-            return step_name
-        
-        # Check if this step has options (with error handling)
-        try:
-            options = option_function(product_id) if option_function else []
-            if options:  # If options exist, go to this step
-                return step_name
-        except Exception as e:
-            logger.error(f"Error checking options for {step_name} with product {product_id}: {e}")
-            # If there's an error checking options, continue to next step
-            continue
-    
-    # If no more steps with options, go to customer info
-    return 'step10_customer_info'
+
 def get_next_step(current_step, product_id):
     """
     Determine the next available step based on which options are available

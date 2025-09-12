@@ -31,7 +31,13 @@ def get_selected_option(getter, session_key, product_id, request, safe_price_fun
     """
     Generic helper to fetch the selected option or sub-option with its price.
     Returns (selected_object, total_price).
+    
+    Enhanced to handle skipped options (where session_key exists but is None)
     """
+    # Check if this option was explicitly skipped (session key exists but is None)
+    if session_key in request.session and request.session.get(session_key) is None:
+        return None, 0
+        
     options = getter(product_id) or []
 
     # Enhanced price handling - handle different field names

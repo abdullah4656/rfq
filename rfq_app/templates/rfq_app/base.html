@@ -355,7 +355,27 @@
                     </form>
                 </div>
                 {% endif %}
-                
+                {% if show_search %}
+<div class="search-form mb-3">
+    <!-- keep this form standalone -->
+    <form method="get" id="search-form">
+        <div class="input-group">
+            <input type="text" name="search" class="form-control"
+                   placeholder="{% block search_placeholder %}Search options...{% endblock %}"
+                   value="{{ search_query }}">
+            <button type="submit" class="btn btn-primary">
+                <i class="fas fa-search"></i>
+            </button>
+            {% if search_query %}
+            <a href="{{ request.path }}" class="btn btn-outline-secondary">
+                <i class="fas fa-times"></i> Clear
+            </a>
+            {% endif %}
+        </div>
+    </form>
+</div>
+{% endif %}
+
                 <!-- Search Results Info -->
                 {% if search_query %}
                 <div class="alert alert-info mb-3">
