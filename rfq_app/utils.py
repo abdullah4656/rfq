@@ -26,13 +26,10 @@ def safe_price(value):
     except Exception:
         return 0.0
 
-
 def get_selected_option(getter, session_key, product_id, request, safe_price_func):
     """
     Generic helper to fetch the selected option or sub-option with its price.
     Returns (selected_object, total_price).
-    
-    Enhanced to handle skipped options (where session_key exists but is None)
     """
     # Check if this option was explicitly skipped (session key exists but is None)
     if session_key in request.session and request.session.get(session_key) is None:
@@ -60,9 +57,12 @@ def get_selected_option(getter, session_key, product_id, request, safe_price_fun
         main = next((o for o in options if o.get("key") == selected_key), None)
         if main:
             total_price += main.get("price", 0)
+            # Return both field name formats for compatibility
             selected = {
-                "main_title": main.get("title") or main.get("label"),
-                "main_price": main.get("price", 0)
+                "title": main.get("title") or main.get("label"),  # For email templates
+                "price": main.get("price", 0),  # For email templates
+                "main_title": main.get("title") or main.get("label"),  # For web templates
+                "main_price": main.get("price", 0)  # For web templates
             }
             
             if selected_sub:
