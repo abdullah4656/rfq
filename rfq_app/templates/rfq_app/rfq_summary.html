@@ -7,9 +7,7 @@
   <p><strong>Name:</strong> {{ customer_name }}</p>
   <p><strong>Email:</strong> {{ customer_email }}</p>
   <p><strong>Notes:</strong> {% if notes %}{{ notes }}{% else %}N/A{% endif %}</p>
-<!-- <p><strong>Name:</strong> {{ rfq.customer_name }}</p>
-<p><strong>Email:</strong> {{ rfq.customer_email }}</p>
-<p><strong>Notes:</strong> {% if rfq.notes %}{{ rfq.notes }}{% else %}N/A{% endif %}</p> -->
+
   <hr>
   <h4>Product Details</h4>
   <p><strong>Product ID:</strong> {{ product_id }}</p>
@@ -42,7 +40,7 @@
   <!-- Base Option -->
   {% if base_option %}
     <p><strong>Base Option:</strong> {{ base_option.title }}{% if base_option.price %} (+${{ base_option.price|floatformat:2 }}){% endif %}
-      {% if base_option.sub_title %} - {{ base_option.sub_title }}{% if base_option.sub_price %} (+${{ base_option.sub_price|floatformat:2 }}){% endif %}{% endif %}
+      {% if base_option.sub_title %} - {{ base_option.sub_title }{% if base_option.sub_price %} (+${{ base_option.sub_price|floatformat:2 }}){% endif %}{% endif %}
     </p>
   {% endif %}
 
@@ -111,7 +109,7 @@
 
   <!-- Decorative Hardware Style -->
   {% if decorative_hardware_style %}
-    <p><strong>Decorative Hardware Style:</strong> {{ decorative_hardware_style.title }{% if decorative_hardware_style.price %} (+${{ decorative_hardware_style.price|floatformat:2 }}){% endif %}
+    <p><strong>Decorative Hardware Style:</strong> {{ decorative_hardware_style.title }}{% if decorative_hardware_style.price %} (+${{ decorative_hardware_style.price|floatformat:2 }}){% endif %}
       {% if decorative_hardware_style.sub_title %} - {{ decorative_hardware_style.sub_title }}{% if decorative_hardware_style.sub_price %} (+${{ decorative_hardware_style.sub_price|floatformat:2 }}){% endif %}{% endif %}
     </p>
   {% endif %}
