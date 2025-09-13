@@ -1,0 +1,101 @@
+{% extends "rfq_app/base.html" %}
+
+{% block title %}Select Top - Marge Carson{% endblock %}
+{% block progress_width %}80%{% endblock %}
+{% block progress_text %}Step 16 - Select Top{% endblock %}
+{% block progress_percent %}80% Complete{% endblock %} 
+{% block heading %}Choose Your Top Option{% endblock %}
+{% block search_placeholder %}Search top options by name, material, or description...{% endblock %}
+
+{% block content %}
+<form method="post">
+    {% csrf_token %}
+    
+    <div class="row">
+        {% for option in options %}
+        <div class="col-lg-4 col-md-6 mb-4">
+            <div class="card option-card h-100 {% if option.key == request.session.top %}selected{% endif %}">
+                <div class="card-body">
+                    <h5 class="card-title">{{ option.label }}</h5>
+                    {% if option.price > 0 %}
+                    <span class="price-badge">+${{ option.price|floatformat:2 }}</span>
+                    {% else %}
+                    <span class="badge bg-secondary">Standard Option</span>
+                    {% endif %}
+                    
+                    {% if option.description %}
+                    <p class="card-text mt-2 text-muted small">{{ option.description }}</p>
+                    {% endif %}
+                    
+                    {% if option.top_type %}
+                    <p class="card-text text-muted small">
+                        <i class="fas fa-border-all me-1"></i> {{ option.top_type }}
+                    </p>
+                    {% endif %}
+                    
+                    <div class="form-check mt-3">
+                        <input class="form-check-input" type="radio" name="top" 
+                               id="top-{{ option.key }}" value="{{ option.key }}"
+                               {% if option.key == request.session.top %}checked{% endif %}>
+                        <label class="form-check-label" for="top-{{ option.key }}">
+                            Select this top option
+                        </label>
+                    </div>
+
+                    {% if option.sub_options %}
+                    <div class="mt-3">
+                        <h6 class="text-muted">Available Variations:</h6>
+                        {% for sub in option.sub_options %}
+                        <div class="form-check">
+                            <input class="form-check-input" type="radio" name="top" 
+                                   id="top-{{ option.key }}-{{ sub.key }}" 
+                                   value="{{ option.key }}-{{ sub.key }}"
+                                   {% if option.key == request.session.top and sub.key == request.session.top_sub %}checked{% endif %}>
+                            <label class="form-check-label" for="top-{{ option.key }}-{{ sub.key }}">
+                                {{ sub.label }}
+                                {% if sub.price > 0 %}
+                                <span class="badge bg-warning">+${{ sub.price|floatformat:2 }}</span>
+                                {% endif %}
+                            </label>
+                        </div>
+                        {% endfor %}
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        {% empty %}
+        <div class="col-12">
+            <div class="alert alert-warning text-center">
+                <i class="fas fa-exclamation-triangle me-2"></i>
+                {% if search_query %}
+                No top options found matching "{{ search_query }}". Please try a different search term.
+                {% else %}
+                No top options available for this product.
+                {% endif %}
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+
+    <div class="row mt-5">
+        <div class="col-12">
+            <div class="d-flex justify-content-between">
+                <a href="{% url 'step15_decorative_hardware_style' product_id=product_id %}" class="btn btn-outline-primary">
+                    <i class="fas fa-arrow-left me-2"></i> Back to Decorative Hardware Style
+                </a>
+                <div>
+                    <!-- Skip button for optional steps -->
+                    <button type="submit" name="skip" value="skip" class="btn btn-outline-secondary me-2">
+                        <i class="fas fa-forward me-2"></i> Skip Top
+                    </button>
+                    
+                    <button type="submit" class="btn btn-primary">
+                        Continue <i class="fas fa-arrow-right ms-2"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</form>
+{% endblock %}
