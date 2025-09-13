@@ -74,4 +74,4 @@ def get_selected_option(getter, session_key, product_id, request, safe_price_fun
                         "sub_price": sub.get("price", 0)
                     })
 
-    return selected, total_price
+    return selected, total_price  # This line was missing!

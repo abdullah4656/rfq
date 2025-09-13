@@ -76,61 +76,7 @@
                             <td class="text-end">+${{ frame_trim.main_price|floatformat:2 }}{% if frame_trim.sub_price %} + ${{ frame_trim.sub_price|floatformat:2 }}{% endif %}</td>
                         </tr>
                         {% endif %}
-                        {% if finish_trim %}
-<tr>
-    <th>Finish Trim: {{ finish_trim.main_title }}{% if finish_trim.sub_title %} - {{ finish_trim.sub_title }}{% endif %}</th>
-    <td class="text-end">+${{ finish_trim.main_price|floatformat:2 }}{% if finish_trim.sub_price %} + ${{ finish_trim.sub_price|floatformat:2 }}{% endif %}</td>
-</tr>
-{% endif %}
-
-{% if pricing %}
-<tr>
-    <th>Pricing: {{ pricing.main_title }}{% if pricing.sub_title %} - {{ pricing.sub_title }}{% endif %}</th>
-    <td class="text-end">+${{ pricing.main_price|floatformat:2 }}{% if pricing.sub_price %} + ${{ pricing.sub_price|floatformat:2 }}{% endif %}</td>
-</tr>
-{% endif %}
-
-{% if drawer_sidepannel %}
-<tr>
-    <th>Drawer Side Panel: {{ drawer_sidepannel.main_title }}{% if drawer_sidepannel.sub_title %} - {{ drawer_sidepannel.sub_title }}{% endif %}</th>
-    <td class="text-end">+${{ drawer_sidepannel.main_price|floatformat:2 }}{% if drawer_sidepannel.sub_price %} + ${{ drawer_sidepannel.sub_price|floatformat:2 }}{% endif %}</td>
-</tr>
-{% endif %}
-
-{% if seat %}
-<tr>
-    <th>Seat: {{ seat.main_title }}{% if seat.sub_title %} - {{ seat.sub_title }}{% endif %}</th>
-    <td class="text-end">+${{ seat.main_price|floatformat:2 }}{% if seat.sub_price %} + ${{ seat.sub_price|floatformat:2 }}{% endif %}</td>
-</tr>
-{% endif %}
-
-{% if decorative_hardware_finish %}
-<tr>
-    <th>Decorative Hardware Finish: {{ decorative_hardware_finish.main_title }}{% if decorative_hardware_finish.sub_title %} - {{ decorative_hardware_finish.sub_title }}{% endif %}</th>
-    <td class="text-end">+${{ decorative_hardware_finish.main_price|floatformat:2 }}{% if decorative_hardware_finish.sub_price %} + ${{ decorative_hardware_finish.sub_price|floatformat:2 }}{% endif %}</td>
-</tr>
-{% endif %}
-
-{% if decorative_hardware_style %}
-<tr>
-    <th>Decorative Hardware Style: {{ decorative_hardware_style.main_title }}{% if decorative_hardware_style.sub_title %} - {{ decorative_hardware_style.sub_title }}{% endif %}</th>
-    <td class="text-end">+${{ decorative_hardware_style.main_price|floatformat:2 }}{% if decorative_hardware_style.sub_price %} + ${{ decorative_hardware_style.sub_price|floatformat:2 }}{% endif %}</td>
-</tr>
-{% endif %}
-
-{% if top %}
-<tr>
-    <th>Top: {{ top.main_title }}{% if top.sub_title %} - {{ top.sub_title }}{% endif %}</th>
-    <td class="text-end">+${{ top.main_price|floatformat:2 }}{% if top.sub_price %} + ${{ top.sub_price|floatformat:2 }}{% endif %}</td>
-</tr>
-{% endif %}
-
-{% if optional_drawer_side_panels_trim %}
-<tr>
-    <th>Optional Drawer & Side Panels Trim: {{ optional_drawer_side_panels_trim.main_title }}{% if optional_drawer_side_panels_trim.sub_title %} - {{ optional_drawer_side_panels_trim.sub_title }}{% endif %}</th>
-    <td class="text-end">+${{ optional_drawer_side_panels_trim.main_price|floatformat:2 }}{% if optional_drawer_side_panels_trim.sub_price %} + ${{ optional_drawer_side_panels_trim.sub_price|floatformat:2 }}{% endif %}</td>
-</tr>
-{% endif %}
+                        
                         
                         <tr style="background-color: #f8f9fa;">
                             <th><strong>Grand Total</strong></th>
