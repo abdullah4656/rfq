@@ -18,6 +18,16 @@ from .shopify_api import (
     get_frame_finish,
     get_heights,
     get_frame_trim,
+    
+    get_finish_trim,
+    get_pricing,
+    get_drawer_sidepannel,
+    get_seat,
+    get_decorative_hardware_finish,
+    get_decorative_hardware_style,
+    get_top,
+    get_optional_drawer_and_side_panels_trim
+    
 )
 from .utils import safe_price, render_to_pdf, get_selected_option
 
@@ -25,11 +35,17 @@ logger = logging.getLogger(__name__)
 COLLECTION_ID = "296548499652"
 
 # Session keys for RFQ data
+# Session keys for RFQ data
 RFQ_SESSION_KEYS = [
     'product_id', 'fabric', 'fabric_sub', 'size', 'size_sub',
     'upholstery', 'upholstery_sub', 'base_option', 'base_option_sub',
     'rails', 'rails_sub', 'frame_finish', 'frame_finish_sub',
     'height', 'height_sub', 'frame_trim', 'frame_trim_sub',
+    'finish_trim', 'finish_trim_sub', 'pricing', 'pricing_sub',
+    'drawer_sidepannel', 'drawer_sidepannel_sub', 'seat', 'seat_sub',
+    'decorative_hardware_finish', 'decorative_hardware_finish_sub',
+    'decorative_hardware_style', 'decorative_hardware_style_sub',
+    'top', 'top_sub', 'optional_drawer_side_panels_trim', 'optional_drawer_side_panels_trim_sub',
     'customer_name', 'customer_email', 'notes',
     'shopify_product_id', 'product_title', 'product_price', 'product_image'
 ]
@@ -55,6 +71,14 @@ def get_running_total(request, product_id, current_options=None):
         (get_frame_finish, 'frame_finish', 'frame_finish_sub'),
         (get_heights, 'height', 'height_sub'),
         (get_frame_trim, 'frame_trim', 'frame_trim_sub'),
+        (get_finish_trim, 'finish_trim', 'finish_trim_sub'),
+        (get_pricing, 'pricing', 'pricing_sub'),
+        (get_drawer_sidepannel, 'drawer_sidepannel', 'drawer_sidepannel_sub'),
+        (get_seat, 'seat', 'seat_sub'),
+        (get_decorative_hardware_finish, 'decorative_hardware_finish', 'decorative_hardware_finish_sub'),
+        (get_decorative_hardware_style, 'decorative_hardware_style', 'decorative_hardware_style_sub'),
+        (get_top, 'top', 'top_sub'),
+        (get_optional_drawer_and_side_panels_trim, 'optional_drawer_side_panels_trim', 'optional_drawer_side_panels_trim_sub'),
     ]
     
     for get_func, main_key, sub_key in option_functions:
@@ -75,7 +99,6 @@ def get_running_total(request, product_id, current_options=None):
                         total += safe_price(sub_upcharge)
     
     return total
-
 ### STEP 1: Select Product ###
 def step1_select_product(request):
     try:
@@ -770,9 +793,665 @@ def step9_frame_trim(request, product_id):
         # On error, try to go to next step instead of showing error page
         next_step = get_next_step('step9_frame_trim', product_id)
         return redirect(next_step, product_id=product_id)
+### STEP 10: Finish Trim (OPTIONAL - With Skip Button) ###
+def step10_finish_trim(request, product_id):
+    try:
+        options = get_finish_trim(product_id) or []
+        base_price = safe_price(get_product_price(product_id))
 
+        # SEARCH FUNCTIONALITY
+        search_query = request.GET.get('search', '')
+        if search_query:
+            options = [o for o in options if 
+                      search_query.lower() in o.get('label', '').lower() or 
+                      search_query.lower() in o.get('title', '').lower() or
+                      search_query.lower() in o.get('description', '').lower() or
+                      search_query.lower() in o.get('trim_style', '').lower() or
+                      search_query.lower() in o.get('material', '').lower()]
+
+        # Skip step if no finish trim options - automatically go to next available step
+        if not options:
+            next_step = get_next_step('step10_finish_trim', product_id)
+            return redirect(next_step, product_id=product_id)
+
+        # Add prices for main + sub-options with enhanced handling
+        for o in options:
+            # Handle different price field names
+            upcharge = o.get("upcharge_cents") or o.get("upcharge") or o.get("price") or 0
+            o["price"] = safe_price(upcharge)
+            
+            for sub in o.get("sub_options", []):
+                sub_upcharge = sub.get("upcharge_cents") or sub.get("upcharge") or sub.get("price") or 0
+                sub["price"] = safe_price(sub_upcharge)
+
+        if request.method == "POST":
+            # Check if user clicked skip button
+            if 'skip' in request.POST:
+                # Mark finish trim as explicitly skipped by setting to None
+                request.session['finish_trim'] = None
+                request.session['finish_trim_sub'] = None
+                
+                # Redirect to next step
+                next_step = get_next_step('step10_finish_trim', product_id)
+                return redirect(next_step, product_id=product_id)
+                
+            selected = request.POST.get("finish_trim")
+            if not selected:
+                return render(request, "rfq_app/step10_finish_trim.html", {
+                    "options": options,
+                    "error": "Please select a finish trim option or click skip to continue.",
+                    "running_total": get_running_total(request, product_id),
+                    "search_query": search_query,
+                    "show_search": True,
+                    "product_id": product_id,
+                    "is_optional": True  # Finish trim is optional
+                })
+
+            # Handle parent / sub-option split
+            if "-" in selected:
+                parent_key, sub_key = selected.split("-", 1)
+            else:
+                parent_key, sub_key = selected, None
+
+            request.session["finish_trim"] = parent_key
+            request.session["finish_trim_sub"] = sub_key
+            
+            # Use automatic next step detection instead of hardcoded redirect
+            next_step = get_next_step('step10_finish_trim', product_id)
+            return redirect(next_step, product_id=product_id)
+
+        return render(request, "rfq_app/step10_finish_trim.html", {
+            "options": options,
+            "running_total": get_running_total(request, product_id),
+            "base_price": base_price,
+            "search_query": search_query,
+            "show_search": True,
+            "product_id": product_id,
+            "is_optional": True  # Finish trim is optional
+        })
+    
+    except Exception as e:
+        logger.error(f"Error in step10_finish_trim: {e}")
+        # On error, try to go to next step instead of showing error page
+        next_step = get_next_step('step10_finish_trim', product_id)
+        return redirect(next_step, product_id=product_id)
+### STEP 11: Pricing (OPTIONAL - With Skip Button) ###
+def step11_pricing(request, product_id):
+    try:
+        options = get_pricing(product_id) or []
+        base_price = safe_price(get_product_price(product_id))
+
+        # SEARCH FUNCTIONALITY
+        search_query = request.GET.get('search', '')
+        if search_query:
+            options = [o for o in options if 
+                      search_query.lower() in o.get('label', '').lower() or 
+                      search_query.lower() in o.get('title', '').lower() or
+                      search_query.lower() in o.get('description', '').lower() or
+                      search_query.lower() in o.get('price_type', '').lower() or
+                      search_query.lower() in o.get('category', '').lower()]
+
+        # Skip step if no pricing options - automatically go to next available step
+        if not options:
+            next_step = get_next_step('step11_pricing', product_id)
+            return redirect(next_step, product_id=product_id)
+
+        # Add prices for main + sub-options with enhanced handling
+        for o in options:
+            # Handle different price field names
+            upcharge = o.get("upcharge_cents") or o.get("upcharge") or o.get("price") or 0
+            o["price"] = safe_price(upcharge)
+            
+            for sub in o.get("sub_options", []):
+                sub_upcharge = sub.get("upcharge_cents") or sub.get("upcharge") or sub.get("price") or 0
+                sub["price"] = safe_price(sub_upcharge)
+
+        if request.method == "POST":
+            # Check if user clicked skip button
+            if 'skip' in request.POST:
+                # Mark pricing as explicitly skipped by setting to None
+                request.session['pricing'] = None
+                request.session['pricing_sub'] = None
+                
+                # Redirect to next step
+                next_step = get_next_step('step11_pricing', product_id)
+                return redirect(next_step, product_id=product_id)
+                
+            selected = request.POST.get("pricing")
+            if not selected:
+                return render(request, "rfq_app/step11_pricing.html", {
+                    "options": options,
+                    "error": "Please select a pricing option or click skip to continue.",
+                    "running_total": get_running_total(request, product_id),
+                    "search_query": search_query,
+                    "show_search": True,
+                    "product_id": product_id,
+                    "is_optional": True  # Pricing is optional
+                })
+
+            # Handle parent / sub-option split
+            if "-" in selected:
+                parent_key, sub_key = selected.split("-", 1)
+            else:
+                parent_key, sub_key = selected, None
+
+            request.session["pricing"] = parent_key
+            request.session["pricing_sub"] = sub_key
+            
+            # Use automatic next step detection instead of hardcoded redirect
+            next_step = get_next_step('step11_pricing', product_id)
+            return redirect(next_step, product_id=product_id)
+
+        return render(request, "rfq_app/step11_pricing.html", {
+            "options": options,
+            "running_total": get_running_total(request, product_id),
+            "base_price": base_price,
+            "search_query": search_query,
+            "show_search": True,
+            "product_id": product_id,
+            "is_optional": True  # Pricing is optional
+        })
+    
+    except Exception as e:
+        logger.error(f"Error in step11_pricing: {e}")
+        # On error, try to go to next step instead of showing error page
+        next_step = get_next_step('step11_pricing', product_id)
+        return redirect(next_step, product_id=product_id)
+### STEP 12: Drawer Side Panel (OPTIONAL - With Skip Button) ###
+def step12_drawer_sidepannel(request, product_id):
+    try:
+        options = get_drawer_sidepannel(product_id) or []
+        base_price = safe_price(get_product_price(product_id))
+
+        # SEARCH FUNCTIONALITY
+        search_query = request.GET.get('search', '')
+        if search_query:
+            options = [o for o in options if 
+                      search_query.lower() in o.get('label', '').lower() or 
+                      search_query.lower() in o.get('title', '').lower() or
+                      search_query.lower() in o.get('description', '').lower() or
+                      search_query.lower() in o.get('panel_type', '').lower() or
+                      search_query.lower() in o.get('material', '').lower()]
+
+        # Skip step if no drawer side panel options - automatically go to next available step
+        if not options:
+            next_step = get_next_step('step12_drawer_sidepannel', product_id)
+            return redirect(next_step, product_id=product_id)
+
+        # Add prices for main + sub-options with enhanced handling
+        for o in options:
+            # Handle different price field names
+            upcharge = o.get("upcharge_cents") or o.get("upcharge") or o.get("price") or 0
+            o["price"] = safe_price(upcharge)
+            
+            for sub in o.get("sub_options", []):
+                sub_upcharge = sub.get("upcharge_cents") or sub.get("upcharge") or sub.get("price") or 0
+                sub["price"] = safe_price(sub_upcharge)
+
+        if request.method == "POST":
+            # Check if user clicked skip button
+            if 'skip' in request.POST:
+                # Mark drawer side panel as explicitly skipped by setting to None
+                request.session['drawer_sidepannel'] = None
+                request.session['drawer_sidepannel_sub'] = None
+                
+                # Redirect to next step
+                next_step = get_next_step('step12_drawer_sidepannel', product_id)
+                return redirect(next_step, product_id=product_id)
+                
+            selected = request.POST.get("drawer_sidepannel")
+            if not selected:
+                return render(request, "rfq_app/step12_drawer_sidepannel.html", {
+                    "options": options,
+                    "error": "Please select a drawer side panel option or click skip to continue.",
+                    "running_total": get_running_total(request, product_id),
+                    "search_query": search_query,
+                    "show_search": True,
+                    "product_id": product_id,
+                    "is_optional": True  # Drawer side panel is optional
+                })
+
+            # Handle parent / sub-option split
+            if "-" in selected:
+                parent_key, sub_key = selected.split("-", 1)
+            else:
+                parent_key, sub_key = selected, None
+
+            request.session["drawer_sidepannel"] = parent_key
+            request.session["drawer_sidepannel_sub"] = sub_key
+            
+            # Use automatic next step detection instead of hardcoded redirect
+            next_step = get_next_step('step12_drawer_sidepannel', product_id)
+            return redirect(next_step, product_id=product_id)
+
+        return render(request, "rfq_app/step12_drawer_sidepannel.html", {
+            "options": options,
+            "running_total": get_running_total(request, product_id),
+            "base_price": base_price,
+            "search_query": search_query,
+            "show_search": True,
+            "product_id": product_id,
+            "is_optional": True  # Drawer side panel is optional
+        })
+    
+    except Exception as e:
+        logger.error(f"Error in step12_drawer_sidepannel: {e}")
+        # On error, try to go to next step instead of showing error page
+        next_step = get_next_step('step12_drawer_sidepannel', product_id)
+        return redirect(next_step, product_id=product_id)
+### STEP 13: Seat (OPTIONAL - With Skip Button) ###
+def step13_seat(request, product_id):
+    try:
+        options = get_seat(product_id) or []
+        base_price = safe_price(get_product_price(product_id))
+
+        # SEARCH FUNCTIONALITY
+        search_query = request.GET.get('search', '')
+        if search_query:
+            options = [o for o in options if 
+                      search_query.lower() in o.get('label', '').lower() or 
+                      search_query.lower() in o.get('title', '').lower() or
+                      search_query.lower() in o.get('description', '').lower() or
+                      search_query.lower() in o.get('seat_type', '').lower() or
+                      search_query.lower() in o.get('material', '').lower()]
+
+        # Skip step if no seat options - automatically go to next available step
+        if not options:
+            next_step = get_next_step('step13_seat', product_id)
+            return redirect(next_step, product_id=product_id)
+
+        # Add prices for main + sub-options with enhanced handling
+        for o in options:
+            # Handle different price field names
+            upcharge = o.get("upcharge_cents") or o.get("upcharge") or o.get("price") or 0
+            o["price"] = safe_price(upcharge)
+            
+            for sub in o.get("sub_options", []):
+                sub_upcharge = sub.get("upcharge_cents") or sub.get("upcharge") or sub.get("price") or 0
+                sub["price"] = safe_price(sub_upcharge)
+
+        if request.method == "POST":
+            # Check if user clicked skip button
+            if 'skip' in request.POST:
+                # Mark seat as explicitly skipped by setting to None
+                request.session['seat'] = None
+                request.session['seat_sub'] = None
+                
+                # Redirect to next step
+                next_step = get_next_step('step13_seat', product_id)
+                return redirect(next_step, product_id=product_id)
+                
+            selected = request.POST.get("seat")
+            if not selected:
+                return render(request, "rfq_app/step13_seat.html", {
+                    "options": options,
+                    "error": "Please select a seat option or click skip to continue.",
+                    "running_total": get_running_total(request, product_id),
+                    "search_query": search_query,
+                    "show_search": True,
+                    "product_id": product_id,
+                    "is_optional": True  # Seat is optional
+                })
+
+            # Handle parent / sub-option split
+            if "-" in selected:
+                parent_key, sub_key = selected.split("-", 1)
+            else:
+                parent_key, sub_key = selected, None
+
+            request.session["seat"] = parent_key
+            request.session["seat_sub"] = sub_key
+            
+            # Use automatic next step detection instead of hardcoded redirect
+            next_step = get_next_step('step13_seat', product_id)
+            return redirect(next_step, product_id=product_id)
+
+        return render(request, "rfq_app/step13_seat.html", {
+            "options": options,
+            "running_total": get_running_total(request, product_id),
+            "base_price": base_price,
+            "search_query": search_query,
+            "show_search": True,
+            "product_id": product_id,
+            "is_optional": True  # Seat is optional
+        })
+    
+    except Exception as e:
+        logger.error(f"Error in step13_seat: {e}")
+        # On error, try to go to next step instead of showing error page
+        next_step = get_next_step('step13_seat', product_id)
+        return redirect(next_step, product_id=product_id)
+### STEP 14: Decorative Hardware Finish (OPTIONAL - With Skip Button) ###
+def step14_decorative_hardware_finish(request, product_id):
+    try:
+        options = get_decorative_hardware_finish(product_id) or []
+        base_price = safe_price(get_product_price(product_id))
+
+        # SEARCH FUNCTIONALITY
+        search_query = request.GET.get('search', '')
+        if search_query:
+            options = [o for o in options if 
+                      search_query.lower() in o.get('label', '').lower() or 
+                      search_query.lower() in o.get('title', '').lower() or
+                      search_query.lower() in o.get('description', '').lower() or
+                      search_query.lower() in o.get('finish_type', '').lower() or
+                      search_query.lower() in o.get('material', '').lower()]
+
+        # Skip step if no decorative hardware finish options - automatically go to next available step
+        if not options:
+            next_step = get_next_step('step14_decorative_hardware_finish', product_id)
+            return redirect(next_step, product_id=product_id)
+
+        # Add prices for main + sub-options with enhanced handling
+        for o in options:
+            # Handle different price field names
+            upcharge = o.get("upcharge_cents") or o.get("upcharge") or o.get("price") or 0
+            o["price"] = safe_price(upcharge)
+            
+            for sub in o.get("sub_options", []):
+                sub_upcharge = sub.get("upcharge_cents") or sub.get("upcharge") or sub.get("price") or 0
+                sub["price"] = safe_price(sub_upcharge)
+
+        if request.method == "POST":
+            # Check if user clicked skip button
+            if 'skip' in request.POST:
+                # Mark decorative hardware finish as explicitly skipped by setting to None
+                request.session['decorative_hardware_finish'] = None
+                request.session['decorative_hardware_finish_sub'] = None
+                
+                # Redirect to next step
+                next_step = get_next_step('step14_decorative_hardware_finish', product_id)
+                return redirect(next_step, product_id=product_id)
+                
+            selected = request.POST.get("decorative_hardware_finish")
+            if not selected:
+                return render(request, "rfq_app/step14_decorative_hardware_finish.html", {
+                    "options": options,
+                    "error": "Please select a decorative hardware finish option or click skip to continue.",
+                    "running_total": get_running_total(request, product_id),
+                    "search_query": search_query,
+                    "show_search": True,
+                    "product_id": product_id,
+                    "is_optional": True  # Decorative hardware finish is optional
+                })
+
+            # Handle parent / sub-option split
+            if "-" in selected:
+                parent_key, sub_key = selected.split("-", 1)
+            else:
+                parent_key, sub_key = selected, None
+
+            request.session["decorative_hardware_finish"] = parent_key
+            request.session["decorative_hardware_finish_sub"] = sub_key
+            
+            # Use automatic next step detection instead of hardcoded redirect
+            next_step = get_next_step('step14_decorative_hardware_finish', product_id)
+            return redirect(next_step, product_id=product_id)
+
+        return render(request, "rfq_app/step14_decorative_hardware_finish.html", {
+            "options": options,
+            "running_total": get_running_total(request, product_id),
+            "base_price": base_price,
+            "search_query": search_query,
+            "show_search": True,
+            "product_id": product_id,
+            "is_optional": True  # Decorative hardware finish is optional
+        })
+    
+    except Exception as e:
+        logger.error(f"Error in step14_decorative_hardware_finish: {e}")
+        # On error, try to go to next step instead of showing error page
+        next_step = get_next_step('step14_decorative_hardware_finish', product_id)
+        return redirect(next_step, product_id=product_id)
+### STEP 15: Decorative Hardware Style (OPTIONAL - With Skip Button) ###
+def step15_decorative_hardware_style(request, product_id):
+    try:
+        options = get_decorative_hardware_style(product_id) or []
+        base_price = safe_price(get_product_price(product_id))
+
+        # SEARCH FUNCTIONALITY
+        search_query = request.GET.get('search', '')
+        if search_query:
+            options = [o for o in options if 
+                      search_query.lower() in o.get('label', '').lower() or 
+                      search_query.lower() in o.get('title', '').lower() or
+                      search_query.lower() in o.get('description', '').lower() or
+                      search_query.lower() in o.get('style_type', '').lower() or
+                      search_query.lower() in o.get('design', '').lower()]
+
+        # Skip step if no decorative hardware style options - automatically go to next available step
+        if not options:
+            next_step = get_next_step('step15_decorative_hardware_style', product_id)
+            return redirect(next_step, product_id=product_id)
+
+        # Add prices for main + sub-options with enhanced handling
+        for o in options:
+            # Handle different price field names
+            upcharge = o.get("upcharge_cents") or o.get("upcharge") or o.get("price") or 0
+            o["price"] = safe_price(upcharge)
+            
+            for sub in o.get("sub_options", []):
+                sub_upcharge = sub.get("upcharge_cents") or sub.get("upcharge") or sub.get("price") or 0
+                sub["price"] = safe_price(sub_upcharge)
+
+        if request.method == "POST":
+            # Check if user clicked skip button
+            if 'skip' in request.POST:
+                # Mark decorative hardware style as explicitly skipped by setting to None
+                request.session['decorative_hardware_style'] = None
+                request.session['decorative_hardware_style_sub'] = None
+                
+                # Redirect to next step
+                next_step = get_next_step('step15_decorative_hardware_style', product_id)
+                return redirect(next_step, product_id=product_id)
+                
+            selected = request.POST.get("decorative_hardware_style")
+            if not selected:
+                return render(request, "rfq_app/step15_decorative_hardware_style.html", {
+                    "options": options,
+                    "error": "Please select a decorative hardware style option or click skip to continue.",
+                    "running_total": get_running_total(request, product_id),
+                    "search_query": search_query,
+                    "show_search": True,
+                    "product_id": product_id,
+                    "is_optional": True  # Decorative hardware style is optional
+                })
+
+            # Handle parent / sub-option split
+            if "-" in selected:
+                parent_key, sub_key = selected.split("-", 1)
+            else:
+                parent_key, sub_key = selected, None
+
+            request.session["decorative_hardware_style"] = parent_key
+            request.session["decorative_hardware_style_sub"] = sub_key
+            
+            # Use automatic next step detection instead of hardcoded redirect
+            next_step = get_next_step('step15_decorative_hardware_style', product_id)
+            return redirect(next_step, product_id=product_id)
+
+        return render(request, "rfq_app/step15_decorative_hardware_style.html", {
+            "options": options,
+            "running_total": get_running_total(request, product_id),
+            "base_price": base_price,
+            "search_query": search_query,
+            "show_search": True,
+            "product_id": product_id,
+            "is_optional": True  # Decorative hardware style is optional
+        })
+    
+    except Exception as e:
+        logger.error(f"Error in step15_decorative_hardware_style: {e}")
+        # On error, try to go to next step instead of showing error page
+        next_step = get_next_step('step15_decorative_hardware_style', product_id)
+        return redirect(next_step, product_id=product_id)
+### STEP 16: Top (OPTIONAL - With Skip Button) ###
+def step16_top(request, product_id):
+    try:
+        options = get_top(product_id) or []
+        base_price = safe_price(get_product_price(product_id))
+
+        # SEARCH FUNCTIONALITY
+        search_query = request.GET.get('search', '')
+        if search_query:
+            options = [o for o in options if 
+                      search_query.lower() in o.get('label', '').lower() or 
+                      search_query.lower() in o.get('title', '').lower() or
+                      search_query.lower() in o.get('description', '').lower() or
+                      search_query.lower() in o.get('top_type', '').lower() or
+                      search_query.lower() in o.get('material', '').lower()]
+
+        # Skip step if no top options - automatically go to next available step
+        if not options:
+            next_step = get_next_step('step16_top', product_id)
+            return redirect(next_step, product_id=product_id)
+
+        # Add prices for main + sub-options with enhanced handling
+        for o in options:
+            # Handle different price field names
+            upcharge = o.get("upcharge_cents") or o.get("upcharge") or o.get("price") or 0
+            o["price"] = safe_price(upcharge)
+            
+            for sub in o.get("sub_options", []):
+                sub_upcharge = sub.get("upcharge_cents") or sub.get("upcharge") or sub.get("price") or 0
+                sub["price"] = safe_price(sub_upcharge)
+
+        if request.method == "POST":
+            # Check if user clicked skip button
+            if 'skip' in request.POST:
+                # Mark top as explicitly skipped by setting to None
+                request.session['top'] = None
+                request.session['top_sub'] = None
+                
+                # Redirect to next step
+                next_step = get_next_step('step16_top', product_id)
+                return redirect(next_step, product_id=product_id)
+                
+            selected = request.POST.get("top")
+            if not selected:
+                return render(request, "rfq_app/step16_top.html", {
+                    "options": options,
+                    "error": "Please select a top option or click skip to continue.",
+                    "running_total": get_running_total(request, product_id),
+                    "search_query": search_query,
+                    "show_search": True,
+                    "product_id": product_id,
+                    "is_optional": True  # Top is optional
+                })
+
+            # Handle parent / sub-option split
+            if "-" in selected:
+                parent_key, sub_key = selected.split("-", 1)
+            else:
+                parent_key, sub_key = selected, None
+
+            request.session["top"] = parent_key
+            request.session["top_sub"] = sub_key
+            
+            # Use automatic next step detection instead of hardcoded redirect
+            next_step = get_next_step('step16_top', product_id)
+            return redirect(next_step, product_id=product_id)
+
+        return render(request, "rfq_app/step16_top.html", {
+            "options": options,
+            "running_total": get_running_total(request, product_id),
+            "base_price": base_price,
+            "search_query": search_query,
+            "show_search": True,
+            "product_id": product_id,
+            "is_optional": True  # Top is optional
+        })
+    
+    except Exception as e:
+        logger.error(f"Error in step16_top: {e}")
+        # On error, try to go to next step instead of showing error page
+        next_step = get_next_step('step16_top', product_id)
+        return redirect(next_step, product_id=product_id)
+### STEP 17: Optional Drawer and Side Panels Trim (OPTIONAL - With Skip Button) ###
+def step17_optional_drawer_side_panels_trim(request, product_id):
+    try:
+        options = get_optional_drawer_and_side_panels_trim(product_id) or []
+        base_price = safe_price(get_product_price(product_id))
+
+        # SEARCH FUNCTIONALITY
+        search_query = request.GET.get('search', '')
+        if search_query:
+            options = [o for o in options if 
+                      search_query.lower() in o.get('label', '').lower() or 
+                      search_query.lower() in o.get('title', '').lower() or
+                      search_query.lower() in o.get('description', '').lower() or
+                      search_query.lower() in o.get('trim_type', '').lower() or
+                      search_query.lower() in o.get('material', '').lower()]
+
+        # Skip step if no optional drawer and side panels trim options - automatically go to next available step
+        if not options:
+            next_step = get_next_step('step17_optional_drawer_side_panels_trim', product_id)
+            return redirect(next_step, product_id=product_id)
+
+        # Add prices for main + sub-options with enhanced handling
+        for o in options:
+            # Handle different price field names
+            upcharge = o.get("upcharge_cents") or o.get("upcharge") or o.get("price") or 0
+            o["price"] = safe_price(upcharge)
+            
+            for sub in o.get("sub_options", []):
+                sub_upcharge = sub.get("upcharge_cents") or sub.get("upcharge") or sub.get("price") or 0
+                sub["price"] = safe_price(sub_upcharge)
+
+        if request.method == "POST":
+            # Check if user clicked skip button
+            if 'skip' in request.POST:
+                # Mark optional drawer and side panels trim as explicitly skipped by setting to None
+                request.session['optional_drawer_side_panels_trim'] = None
+                request.session['optional_drawer_side_panels_trim_sub'] = None
+                
+                # Redirect to next step
+                next_step = get_next_step('step17_optional_drawer_side_panels_trim', product_id)
+                return redirect(next_step, product_id=product_id)
+                
+            selected = request.POST.get("optional_drawer_side_panels_trim")
+            if not selected:
+                return render(request, "rfq_app/step17_optional_drawer_side_panels_trim.html", {
+                    "options": options,
+                    "error": "Please select an optional drawer and side panels trim option or click skip to continue.",
+                    "running_total": get_running_total(request, product_id),
+                    "search_query": search_query,
+                    "show_search": True,
+                    "product_id": product_id,
+                    "is_optional": True  # Optional drawer and side panels trim is optional
+                })
+
+            # Handle parent / sub-option split
+            if "-" in selected:
+                parent_key, sub_key = selected.split("-", 1)
+            else:
+                parent_key, sub_key = selected, None
+
+            request.session["optional_drawer_side_panels_trim"] = parent_key
+            request.session["optional_drawer_side_panels_trim_sub"] = sub_key
+            
+            # Use automatic next step detection instead of hardcoded redirect
+            next_step = get_next_step('step17_optional_drawer_side_panels_trim', product_id)
+            return redirect(next_step, product_id=product_id)
+
+        return render(request, "rfq_app/step17_optional_drawer_side_panels_trim.html", {
+            "options": options,
+            "running_total": get_running_total(request, product_id),
+            "base_price": base_price,
+            "search_query": search_query,
+            "show_search": True,
+            "product_id": product_id,
+            "is_optional": True  # Optional drawer and side panels trim is optional
+        })
+    
+    except Exception as e:
+        logger.error(f"Error in step17_optional_drawer_side_panels_trim: {e}")
+        # On error, try to go to next step instead of showing error page
+        next_step = get_next_step('step17_optional_drawer_side_panels_trim', product_id)
+        return redirect(next_step, product_id=product_id)
 ### STEP 10: Customer Info ###
-def step10_customer_info(request, product_id):
+### STEP 18: Customer Info ###
+def step18_customer_info(request, product_id):
     # Calculate running total once to use in both GET and POST scenarios
     running_total = get_running_total(request, product_id)
     
@@ -783,14 +1462,14 @@ def step10_customer_info(request, product_id):
 
         # Basic validation
         if not name:
-            return render(request, "rfq_app/step10.html", {
+            return render(request, "rfq_app/step18_customer_info.html", {
                 "error": "Please enter your name.",
                 "product_id": product_id,
                 "running_total": running_total  # Add running total to error context
             })
         
         if not email or "@" not in email:
-            return render(request, "rfq_app/step10.html", {
+            return render(request, "rfq_app/step18_customer_info.html", {
                 "error": "Please enter a valid email address.",
                 "product_id": product_id,
                 "running_total": running_total  # Add running total to error context
@@ -828,7 +1507,8 @@ def step10_customer_info(request, product_id):
                         })
                 
                 return choice
-            # Get all options
+            
+            # Get all options including the new ones
             fabric = find_selected(get_fabrics(product_id) or [], request.session.get("fabric"), request.session.get("fabric_sub"))
             size = find_selected(get_size(product_id) or [], request.session.get("size"), request.session.get("size_sub"))
             upholstery = find_selected(get_upholstery_style(product_id) or [], request.session.get("upholstery"), request.session.get("upholstery_sub"))
@@ -837,9 +1517,19 @@ def step10_customer_info(request, product_id):
             frame_finish = find_selected(get_frame_finish(product_id) or [], request.session.get("frame_finish"), request.session.get("frame_finish_sub"))
             height = find_selected(get_heights(product_id) or [], request.session.get("height"), request.session.get("height_sub"))
             frame_trim = find_selected(get_frame_trim(product_id) or [], request.session.get("frame_trim"), request.session.get("frame_trim_sub"))
+            finish_trim = find_selected(get_finish_trim(product_id) or [], request.session.get("finish_trim"), request.session.get("finish_trim_sub"))
+            pricing = find_selected(get_pricing(product_id) or [], request.session.get("pricing"), request.session.get("pricing_sub"))
+            drawer_sidepannel = find_selected(get_drawer_sidepannel(product_id) or [], request.session.get("drawer_sidepannel"), request.session.get("drawer_sidepannel_sub"))
+            seat = find_selected(get_seat(product_id) or [], request.session.get("seat"), request.session.get("seat_sub"))
+            decorative_hardware_finish = find_selected(get_decorative_hardware_finish(product_id) or [], request.session.get("decorative_hardware_finish"), request.session.get("decorative_hardware_finish_sub"))
+            decorative_hardware_style = find_selected(get_decorative_hardware_style(product_id) or [], request.session.get("decorative_hardware_style"), request.session.get("decorative_hardware_style_sub"))
+            top = find_selected(get_top(product_id) or [], request.session.get("top"), request.session.get("top_sub"))
+            optional_drawer_side_panels_trim = find_selected(get_optional_drawer_and_side_panels_trim(product_id) or [], request.session.get("optional_drawer_side_panels_trim"), request.session.get("optional_drawer_side_panels_trim_sub"))
 
             # Add prices
-            for choice in [fabric, size, upholstery, base_option, rails, frame_finish, height, frame_trim]:
+            for choice in [fabric, size, upholstery, base_option, rails, frame_finish, height, frame_trim, 
+                          finish_trim, pricing, drawer_sidepannel, seat, decorative_hardware_finish, 
+                          decorative_hardware_style, top, optional_drawer_side_panels_trim]:
                 if choice:
                     total += choice.get("price", 0) + choice.get("sub_price", 0)
 
@@ -855,6 +1545,14 @@ def step10_customer_info(request, product_id):
                 "frame_finish": frame_finish,
                 "height": height,
                 "frame_trim": frame_trim,
+                "finish_trim": finish_trim,
+                "pricing": pricing,
+                "drawer_sidepannel": drawer_sidepannel,
+                "seat": seat,
+                "decorative_hardware_finish": decorative_hardware_finish,
+                "decorative_hardware_style": decorative_hardware_style,
+                "top": top,
+                "optional_drawer_side_panels_trim": optional_drawer_side_panels_trim,
                 "grand_total": total,
                 "customer_name": name,
                 "customer_email": email,
@@ -890,19 +1588,18 @@ def step10_customer_info(request, product_id):
             return redirect("rfq_summary", product_id=product_id)
 
         except Exception as e:
-            logger.error(f"Error sending email in step10: {e}")
-            return render(request, "rfq_app/step10.html", {
+            logger.error(f"Error sending email in step18_customer_info: {e}")
+            return render(request, "rfq_app/step18_customer_info.html", {
                 "error": "Failed to send your request. Please try again.",
                 "product_id": product_id,
                 "running_total": running_total  # Add running total to error context
             })
 
     # GET → customer form
-    return render(request, "rfq_app/step10.html", {
+    return render(request, "rfq_app/step18_customer_info.html", {
         "running_total": running_total,
         "product_id": product_id
     })
-
 def rfq_summary(request, product_id):
     try:
         base_price = safe_price(get_product_price(product_id))
@@ -916,11 +1613,22 @@ def rfq_summary(request, product_id):
         selected_finish, finish_price = get_selected_option(get_frame_finish, "frame_finish", product_id, request, safe_price)
         selected_height, height_price = get_selected_option(get_heights, "height", product_id, request, safe_price)
         selected_trim, trim_price = get_selected_option(get_frame_trim, "frame_trim", product_id, request, safe_price)
+        selected_finish_trim, finish_trim_price = get_selected_option(get_finish_trim, "finish_trim", product_id, request, safe_price)
+        selected_pricing, pricing_price = get_selected_option(get_pricing, "pricing", product_id, request, safe_price)
+        selected_drawer_sidepannel, drawer_sidepannel_price = get_selected_option(get_drawer_sidepannel, "drawer_sidepannel", product_id, request, safe_price)
+        selected_seat, seat_price = get_selected_option(get_seat, "seat", product_id, request, safe_price)
+        selected_decorative_hardware_finish, decorative_hardware_finish_price = get_selected_option(get_decorative_hardware_finish, "decorative_hardware_finish", product_id, request, safe_price)
+        selected_decorative_hardware_style, decorative_hardware_style_price = get_selected_option(get_decorative_hardware_style, "decorative_hardware_style", product_id, request, safe_price)
+        selected_top, top_price = get_selected_option(get_top, "top", product_id, request, safe_price)
+        selected_optional_drawer_side_panels_trim, optional_drawer_side_panels_trim_price = get_selected_option(get_optional_drawer_and_side_panels_trim, "optional_drawer_side_panels_trim", product_id, request, safe_price)
 
         # Total - ensure all prices are valid numbers
         total = base_price
         for price in [fabric_price, size_price, upholstery_price, base_option_price, 
-                     rails_price, finish_price, height_price, trim_price]:
+                     rails_price, finish_price, height_price, trim_price,
+                     finish_trim_price, pricing_price, drawer_sidepannel_price,
+                     seat_price, decorative_hardware_finish_price, decorative_hardware_style_price,
+                     top_price, optional_drawer_side_panels_trim_price]:
             total += price if price else 0
 
         context = {
@@ -934,6 +1642,14 @@ def rfq_summary(request, product_id):
             "frame_finish": selected_finish,
             "height": selected_height,
             "frame_trim": selected_trim,
+            "finish_trim": selected_finish_trim,
+            "pricing": selected_pricing,
+            "drawer_sidepannel": selected_drawer_sidepannel,
+            "seat": selected_seat,
+            "decorative_hardware_finish": selected_decorative_hardware_finish,
+            "decorative_hardware_style": selected_decorative_hardware_style,
+            "top": selected_top,
+            "optional_drawer_side_panels_trim": selected_optional_drawer_side_panels_trim,
             "grand_total": total,
             # Customer info
             "customer_name": request.session.get("customer_name"),
@@ -949,12 +1665,11 @@ def rfq_summary(request, product_id):
             "error": "Failed to load summary. Please try again.",
             "product_id": product_id
         })
-
 def rfq_summary_pdf(request, product_id):
     try:
         base_price = safe_price(get_product_price(product_id))
 
-        # Use the SAME find_selected function as step10_customer_info
+        # Use the SAME find_selected function as step18_customer_info
         def find_selected(options, main_key, sub_key=None):
             main = next((o for o in options if o.get("key") == main_key), None)
             if not main:
@@ -988,10 +1703,20 @@ def rfq_summary_pdf(request, product_id):
         frame_finish = find_selected(get_frame_finish(product_id) or [], request.session.get("frame_finish"), request.session.get("frame_finish_sub"))
         height = find_selected(get_heights(product_id) or [], request.session.get("height"), request.session.get("height_sub"))
         frame_trim = find_selected(get_frame_trim(product_id) or [], request.session.get("frame_trim"), request.session.get("frame_trim_sub"))
+        finish_trim = find_selected(get_finish_trim(product_id) or [], request.session.get("finish_trim"), request.session.get("finish_trim_sub"))
+        pricing = find_selected(get_pricing(product_id) or [], request.session.get("pricing"), request.session.get("pricing_sub"))
+        drawer_sidepannel = find_selected(get_drawer_sidepannel(product_id) or [], request.session.get("drawer_sidepannel"), request.session.get("drawer_sidepannel_sub"))
+        seat = find_selected(get_seat(product_id) or [], request.session.get("seat"), request.session.get("seat_sub"))
+        decorative_hardware_finish = find_selected(get_decorative_hardware_finish(product_id) or [], request.session.get("decorative_hardware_finish"), request.session.get("decorative_hardware_finish_sub"))
+        decorative_hardware_style = find_selected(get_decorative_hardware_style(product_id) or [], request.session.get("decorative_hardware_style"), request.session.get("decorative_hardware_style_sub"))
+        top = find_selected(get_top(product_id) or [], request.session.get("top"), request.session.get("top_sub"))
+        optional_drawer_side_panels_trim = find_selected(get_optional_drawer_and_side_panels_trim(product_id) or [], request.session.get("optional_drawer_side_panels_trim"), request.session.get("optional_drawer_side_panels_trim_sub"))
 
         # Calculate total - handle None values gracefully
         total = base_price
-        for choice in [fabric, size, upholstery, base_option, rails, frame_finish, height, frame_trim]:
+        for choice in [fabric, size, upholstery, base_option, rails, frame_finish, height, frame_trim,
+                      finish_trim, pricing, drawer_sidepannel, seat, decorative_hardware_finish,
+                      decorative_hardware_style, top, optional_drawer_side_panels_trim]:
             if choice:
                 total += (choice.get("price", 0) or 0) + (choice.get("sub_price", 0) or 0)
 
@@ -1006,6 +1731,14 @@ def rfq_summary_pdf(request, product_id):
             "frame_finish": frame_finish,
             "height": height,
             "frame_trim": frame_trim,
+            "finish_trim": finish_trim,
+            "pricing": pricing,
+            "drawer_sidepannel": drawer_sidepannel,
+            "seat": seat,
+            "decorative_hardware_finish": decorative_hardware_finish,
+            "decorative_hardware_style": decorative_hardware_style,
+            "top": top,
+            "optional_drawer_side_panels_trim": optional_drawer_side_panels_trim,
             "grand_total": total,
             "customer_name": request.session.get("customer_name"),
             "customer_email": request.session.get("customer_email"),
@@ -1030,7 +1763,6 @@ def rfq_summary_pdf(request, product_id):
     except Exception as e:
         logger.error(f"Error in rfq_summary_pdf: {e}")
         return HttpResponse("Error generating PDF", status=500)
-
 def start_rfq_from_shopify(request):
     """Start RFQ process from Shopify product link with automatic step detection"""
     shopify_product_id = request.GET.get('shopify_product_id')
@@ -1061,12 +1793,20 @@ def start_rfq_from_shopify(request):
             ('step7_frame_finish', get_frame_finish),
             ('step8_height', get_heights),
             ('step9_frame_trim', get_frame_trim),
-            ('step10_customer_info', None),  # Always available as fallback
+            ('step10_finish_trim', get_finish_trim),
+            ('step11_pricing', get_pricing),
+            ('step12_drawer_sidepannel', get_drawer_sidepannel),
+            ('step13_seat', get_seat),
+            ('step14_decorative_hardware_finish', get_decorative_hardware_finish),
+            ('step15_decorative_hardware_style', get_decorative_hardware_style),
+            ('step16_top', get_top),
+            ('step17_optional_drawer_side_panels_trim', get_optional_drawer_and_side_panels_trim),
+            ('step18_customer_info', None),  # Always available as fallback
         ]
         
         # Find first step with available options
         for step_name, option_function in step_order:
-            if step_name == 'step10_customer_info':
+            if step_name == 'step18_customer_info':
                 # If we reach customer info, use it as fallback
                 break
                 
@@ -1082,11 +1822,10 @@ def start_rfq_from_shopify(request):
                 continue
         
         # If no steps with options found, go directly to customer info
-        return redirect('step10_customer_info', product_id=shopify_product_id)
+        return redirect('step18_customer_info', product_id=shopify_product_id)
     
     # If no product ID provided, go to normal start
     return redirect('step1_select_product')
-
 def get_next_step(current_step, product_id):
     """
     Determine the next available step based on which options are available
@@ -1101,7 +1840,15 @@ def get_next_step(current_step, product_id):
         ('step7_frame_finish', get_frame_finish),
         ('step8_height', get_heights),
         ('step9_frame_trim', get_frame_trim),
-        ('step10_customer_info', None),  # Always show customer info step
+        ('step10_finish_trim', get_finish_trim),
+        ('step11_pricing', get_pricing),
+        ('step12_drawer_sidepannel', get_drawer_sidepannel),
+        ('step13_seat', get_seat),
+        ('step14_decorative_hardware_finish', get_decorative_hardware_finish),
+        ('step15_decorative_hardware_style', get_decorative_hardware_style),
+        ('step16_top', get_top),
+        ('step17_optional_drawer_side_panels_trim', get_optional_drawer_and_side_panels_trim),
+        ('step18_customer_info', None),  # Always show customer info step
     ]
     
     # Find current step index
@@ -1113,14 +1860,14 @@ def get_next_step(current_step, product_id):
     
     if current_index is None:
         logger.warning(f"Current step '{current_step}' not found in step order. Defaulting to customer info.")
-        return 'step10_customer_info'  # Default to last step
+        return 'step18_customer_info'  # Default to last step
     
     # Find next step with available options
     for i in range(current_index + 1, len(step_order)):
         step_name, option_function = step_order[i]
         
         # Customer info is always available
-        if step_name == 'step10_customer_info':
+        if step_name == 'step18_customer_info':
             return step_name
         
         # Check if this step has options (with robust error handling)
@@ -1134,4 +1881,4 @@ def get_next_step(current_step, product_id):
             continue
     
     # If no more steps with options, go to customer info
-    return 'step10_customer_info'
+    return 'step18_customer_info'

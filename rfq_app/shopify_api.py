@@ -132,3 +132,31 @@ def get_heights(product_id):
 
 def get_frame_trim(product_id): 
     return get_metafield(product_id, "frame_trim_options", [])
+
+def get_finish_trim(product_id): 
+    return get_metafield(product_id, "finish_trim", [])
+def get_pricing(product_id): 
+    return get_metafield(product_id, "pricing", [])
+
+def get_drawer_sidepannel(product_id): 
+    return get_metafield(product_id, "drawer_and_side_panel_insets", [])
+
+def get_seat(product_id): 
+    return get_metafield(product_id, "seat", [])
+
+
+def get_decorative_hardware_finish(product_id): 
+    return get_metafield(product_id, "decorative_hardware_finish", [])
+
+
+def get_decorative_hardware_style(product_id): 
+    return get_metafield(product_id, "decorative_hardware_style", [])
+
+
+def get_top(product_id): 
+    return get_metafield(product_id, "top", [])
+
+
+def get_optional_drawer_and_side_panels_trim(product_id): 
+    return get_metafield(product_id, "optional_drawer_and_side_panels_trim", [])
+
