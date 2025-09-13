@@ -1613,6 +1613,8 @@ def rfq_summary(request, product_id):
         selected_finish, finish_price = get_selected_option(get_frame_finish, "frame_finish", product_id, request, safe_price)
         selected_height, height_price = get_selected_option(get_heights, "height", product_id, request, safe_price)
         selected_trim, trim_price = get_selected_option(get_frame_trim, "frame_trim", product_id, request, safe_price)
+        
+        # ADD THE NEW OPTIONS HERE:
         selected_finish_trim, finish_trim_price = get_selected_option(get_finish_trim, "finish_trim", product_id, request, safe_price)
         selected_pricing, pricing_price = get_selected_option(get_pricing, "pricing", product_id, request, safe_price)
         selected_drawer_sidepannel, drawer_sidepannel_price = get_selected_option(get_drawer_sidepannel, "drawer_sidepannel", product_id, request, safe_price)
@@ -1626,6 +1628,7 @@ def rfq_summary(request, product_id):
         total = base_price
         for price in [fabric_price, size_price, upholstery_price, base_option_price, 
                      rails_price, finish_price, height_price, trim_price,
+                     # ADD THE NEW PRICES HERE:
                      finish_trim_price, pricing_price, drawer_sidepannel_price,
                      seat_price, decorative_hardware_finish_price, decorative_hardware_style_price,
                      top_price, optional_drawer_side_panels_trim_price]:
@@ -1642,6 +1645,7 @@ def rfq_summary(request, product_id):
             "frame_finish": selected_finish,
             "height": selected_height,
             "frame_trim": selected_trim,
+            # ADD THE NEW OPTIONS TO CONTEXT:
             "finish_trim": selected_finish_trim,
             "pricing": selected_pricing,
             "drawer_sidepannel": selected_drawer_sidepannel,
