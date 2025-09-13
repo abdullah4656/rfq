@@ -22,61 +22,20 @@
                         </tr>
                         
                         {% if fabric %}
-                        <tr>
-                            <th>Fabric: {{ fabric.main_title }}{% if fabric.sub_title %} - {{ fabric.sub_title }}{% endif %}</th>
-                            <td class="text-end">+${{ fabric.main_price|floatformat:2 }}{% if fabric.sub_price %} + ${{ fabric.sub_price|floatformat:2 }}{% endif %}</td>
-                        </tr>
-                        {% endif %}
-                        
-                        {% if size %}
-                        <tr>
-                            <th>Size: {{ size.main_title }}{% if size.sub_title %} - {{ size.sub_title }}{% endif %}</th>
-                            <td class="text-end">+${{ size.main_price|floatformat:2 }}{% if size.sub_price %} + ${{ size.sub_price|floatformat:2 }}{% endif %}</td>
-                        </tr>
-                        {% endif %}
-                        
-                        {% if upholstery %}
-                        <tr>
-                            <th>Upholstery: {{ upholstery.main_title }}{% if upholstery.sub_title %} - {{ upholstery.sub_title }}{% endif %}</th>
-                            <td class="text-end">+${{ upholstery.main_price|floatformat:2 }}{% if upholstery.sub_price %} + ${{ upholstery.sub_price|floatformat:2 }}{% endif %}</td>
-                        </tr>
-                        {% endif %}
-                        
-                        {% if base_option %}
-                        <tr>
-                            <th>Base: {{ base_option.main_title }}{% if base_option.sub_title %} - {{ base_option.sub_title }}{% endif %}</th>
-                            <td class="text-end">+${{ base_option.main_price|floatformat:2 }}{% if base_option.sub_price %} + ${{ base_option.sub_price|floatformat:2 }}{% endif %}</td>
-                        </tr>
-                        {% endif %}
-                        
-                        {% if rails %}
-                        <tr>
-                            <th>Rails: {{ rails.main_title }}{% if rails.sub_title %} - {{ rails.sub_title }}{% endif %}</th>
-                            <td class="text-end">+${{ rails.main_price|floatformat:2 }}{% if rails.sub_price %} + ${{ rails.sub_price|floatformat:2 }}{% endif %}</td>
-                        </tr>
-                        {% endif %}
-                        
-                        {% if frame_finish %}
-                        <tr>
-                            <th>Frame Finish: {{ frame_finish.main_title }}{% if frame_finish.sub_title %} - {{ frame_finish.sub_title }}{% endif %}</th>
-                            <td class="text-end">+${{ frame_finish.main_price|floatformat:2 }}{% if frame_finish.sub_price %} + ${{ frame_finish.sub_price|floatformat:2 }}{% endif %}</td>
-                        </tr>
-                        {% endif %}
-                        
-                        {% if height %}
-                        <tr>
-                            <th>Height: {{ height.main_title }}{% if height.sub_title %} - {{ height.sub_title }}{% endif %}</th>
-                            <td class="text-end">+${{ height.main_price|floatformat:2 }}{% if height.sub_price %} + ${{ height.sub_price|floatformat:2 }}{% endif %}</td>
-                        </tr>
-                        {% endif %}
-                        
-                        {% if frame_trim %}
-                        <tr>
-                            <th>Frame Trim: {{ frame_trim.main_title }}{% if frame_trim.sub_title %} - {{ frame_trim.sub_title }}{% endif %}</th>
-                            <td class="text-end">+${{ frame_trim.main_price|floatformat:2 }}{% if frame_trim.sub_price %} + ${{ frame_trim.sub_price|floatformat:2 }}{% endif %}</td>
-                        </tr>
-                        {% endif %}
-                        
+<tr>
+    <th>Fabric: {{ fabric.title }}{% if fabric.sub_title %} - {{ fabric.sub_title }}{% endif %}</th>
+    <td class="text-end">+${{ fabric.price|floatformat:2 }}{% if fabric.sub_price %} + ${{ fabric.sub_price|floatformat:2 }}{% endif %}</td>
+</tr>
+{% endif %}
+
+{% if size %}
+<tr>
+    <th>Size: {{ size.title }}{% if size.sub_title %} - {{ size.sub_title }}{% endif %}</th>
+    <td class="text-end">+${{ size.price|floatformat:2 }}{% if size.sub_price %} + ${{ size.sub_price|floatformat:2 }}{% endif %}</td>
+</tr>
+{% endif %}
+
+<!-- Update all other existing options similarly -->
                         
                         <tr style="background-color: #f8f9fa;">
                             <th><strong>Grand Total</strong></th>
