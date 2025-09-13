@@ -5,19 +5,20 @@
     <style>
         body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
         .container { max-width: 800px; margin: 0 auto; padding: 20px; }
-        .header { background: #007bff; color: white; padding: 20px; text-align: center; }
+        .header { background: #000000; color: white; padding: 20px; text-align: center; }
         .content { background: #f8f9fa; padding: 20px; }
         .summary-table { width: 100%; border-collapse: collapse; margin: 20px 0; }
         .summary-table th, .summary-table td { padding: 12px; text-align: left; border-bottom: 1px solid #ddd; }
         .summary-table th { background: #e9ecef; }
-        .total-row { background: #007bff; color: white; font-weight: bold; }
+        .total-row { background: #000000; color: white; font-weight: bold; }
         .footer { background: #343a40; color: white; padding: 20px; text-align: center; margin-top: 20px; }
+        .option-price { text-align: right; }
     </style>
 </head>
 <body>
     <div class="container">
         <div class="header">
-            <h1>Custom Furniture Quote</h1>
+            <h1>Marge Carson Custom Furniture Quote</h1>
             <p>Request for Quote #{{ product_id }}</p>
         </div>
         
@@ -34,93 +35,242 @@
                 <tr>
                     <th>Item</th>
                     <th>Selection</th>
-                    <th>Price</th>
+                    <th class="option-price">Price</th>
                 </tr>
                 
+                <!-- Base Price -->
                 <tr>
                     <td>Base Product</td>
-                    <td>Standard</td>
-                    <td>${{ base_price|floatformat:2 }}</td>
+                    <td>Standard Configuration</td>
+                    <td class="option-price">${{ base_price|floatformat:2 }}</td>
                 </tr>
                 
+                <!-- Fabric -->
                 {% if fabric %}
                 <tr>
                     <td>Fabric</td>
                     <td>{{ fabric.title }}{% if fabric.sub_title %} - {{ fabric.sub_title }}{% endif %}</td>
-                    <td>+${{ fabric.price|floatformat:2 }}{% if fabric.sub_price %} + ${{ fabric.sub_price|floatformat:2 }}{% endif %}</td>
+                    <td class="option-price">
+                        {% if fabric.price or fabric.sub_price %}+${% endif %}
+                        {% if fabric.price %}{{ fabric.price|floatformat:2 }}{% endif %}
+                        {% if fabric.sub_price %} + ${{ fabric.sub_price|floatformat:2 }}{% endif %}
+                    </td>
                 </tr>
                 {% endif %}
                 
+                <!-- Size -->
                 {% if size %}
                 <tr>
                     <td>Size</td>
                     <td>{{ size.title }}{% if size.sub_title %} - {{ size.sub_title }}{% endif %}</td>
-                    <td>+${{ size.price|floatformat:2 }}{% if size.sub_price %} + ${{ size.sub_price|floatformat:2 }}{% endif %}</td>
+                    <td class="option-price">
+                        {% if size.price or size.sub_price %}+${% endif %}
+                        {% if size.price %}{{ size.price|floatformat:2 }}{% endif %}
+                        {% if size.sub_price %} + ${{ size.sub_price|floatformat:2 }}{% endif %}
+                    </td>
                 </tr>
                 {% endif %}
                 
+                <!-- Upholstery -->
                 {% if upholstery %}
                 <tr>
                     <td>Upholstery</td>
                     <td>{{ upholstery.title }}{% if upholstery.sub_title %} - {{ upholstery.sub_title }}{% endif %}</td>
-                    <td>+${{ upholstery.price|floatformat:2 }}{% if upholstery.sub_price %} + ${{ upholstery.sub_price|floatformat:2 }}{% endif %}</td>
+                    <td class="option-price">
+                        {% if upholstery.price or upholstery.sub_price %}+${% endif %}
+                        {% if upholstery.price %}{{ upholstery.price|floatformat:2 }}{% endif %}
+                        {% if upholstery.sub_price %} + ${{ upholstery.sub_price|floatformat:2 }}{% endif %}
+                    </td>
                 </tr>
                 {% endif %}
                 
+                <!-- Base Option -->
                 {% if base_option %}
                 <tr>
                     <td>Base</td>
                     <td>{{ base_option.title }}{% if base_option.sub_title %} - {{ base_option.sub_title }}{% endif %}</td>
-                    <td>+${{ base_option.price|floatformat:2 }}{% if base_option.sub_price %} + ${{ base_option.sub_price|floatformat:2 }}{% endif %}</td>
+                    <td class="option-price">
+                        {% if base_option.price or base_option.sub_price %}+${% endif %}
+                        {% if base_option.price %}{{ base_option.price|floatformat:2 }}{% endif %}
+                        {% if base_option.sub_price %} + ${{ base_option.sub_price|floatformat:2 }}{% endif %}
+                    </td>
                 </tr>
                 {% endif %}
                 
+                <!-- Rails -->
                 {% if rails %}
                 <tr>
                     <td>Rails</td>
                     <td>{{ rails.title }}{% if rails.sub_title %} - {{ rails.sub_title }}{% endif %}</td>
-                    <td>+${{ rails.price|floatformat:2 }}{% if rails.sub_price %} + ${{ rails.sub_price|floatformat:2 }}{% endif %}</td>
+                    <td class="option-price">
+                        {% if rails.price or rails.sub_price %}+${% endif %}
+                        {% if rails.price %}{{ rails.price|floatformat:2 }}{% endif %}
+                        {% if rails.sub_price %} + ${{ rails.sub_price|floatformat:2 }}{% endif %}
+                    </td>
                 </tr>
                 {% endif %}
                 
+                <!-- Frame Finish -->
                 {% if frame_finish %}
                 <tr>
                     <td>Frame Finish</td>
                     <td>{{ frame_finish.title }}{% if frame_finish.sub_title %} - {{ frame_finish.sub_title }}{% endif %}</td>
-                    <td>+${{ frame_finish.price|floatformat:2 }}{% if frame_finish.sub_price %} + ${{ frame_finish.sub_price|floatformat:2 }}{% endif %}</td>
+                    <td class="option-price">
+                        {% if frame_finish.price or frame_finish.sub_price %}+${% endif %}
+                        {% if frame_finish.price %}{{ frame_finish.price|floatformat:2 }}{% endif %}
+                        {% if frame_finish.sub_price %} + ${{ frame_finish.sub_price|floatformat:2 }}{% endif %}
+                    </td>
                 </tr>
                 {% endif %}
                 
+                <!-- Height -->
                 {% if height %}
                 <tr>
                     <td>Height</td>
                     <td>{{ height.title }}{% if height.sub_title %} - {{ height.sub_title }}{% endif %}</td>
-                    <td>+${{ height.price|floatformat:2 }}{% if height.sub_price %} + ${{ height.sub_price|floatformat:2 }}{% endif %}</td>
+                    <td class="option-price">
+                        {% if height.price or height.sub_price %}+${% endif %}
+                        {% if height.price %}{{ height.price|floatformat:2 }}{% endif %}
+                        {% if height.sub_price %} + ${{ height.sub_price|floatformat:2 }}{% endif %}
+                    </td>
                 </tr>
                 {% endif %}
                 
+                <!-- Frame Trim -->
                 {% if frame_trim %}
                 <tr>
                     <td>Frame Trim</td>
                     <td>{{ frame_trim.title }}{% if frame_trim.sub_title %} - {{ frame_trim.sub_title }}{% endif %}</td>
-                    <td>+${{ frame_trim.price|floatformat:2 }}{% if frame_trim.sub_price %} + ${{ frame_trim.sub_price|floatformat:2 }}{% endif %}</td>
+                    <td class="option-price">
+                        {% if frame_trim.price or frame_trim.sub_price %}+${% endif %}
+                        {% if frame_trim.price %}{{ frame_trim.price|floatformat:2 }}{% endif %}
+                        {% if frame_trim.sub_price %} + ${{ frame_trim.sub_price|floatformat:2 }}{% endif %}
+                    </td>
                 </tr>
                 {% endif %}
                 
+                <!-- Finish Trim -->
+                {% if finish_trim %}
+                <tr>
+                    <td>Finish Trim</td>
+                    <td>{{ finish_trim.title }}{% if finish_trim.sub_title %} - {{ finish_trim.sub_title }}{% endif %}</td>
+                    <td class="option-price">
+                        {% if finish_trim.price or finish_trim.sub_price %}+${% endif %}
+                        {% if finish_trim.price %}{{ finish_trim.price|floatformat:2 }}{% endif %}
+                        {% if finish_trim.sub_price %} + ${{ finish_trim.sub_price|floatformat:2 }}{% endif %}
+                    </td>
+                </tr>
+                {% endif %}
+                
+                <!-- Pricing -->
+                {% if pricing %}
+                <tr>
+                    <td>Pricing</td>
+                    <td>{{ pricing.title }}{% if pricing.sub_title %} - {{ pricing.sub_title }}{% endif %}</td>
+                    <td class="option-price">
+                        {% if pricing.price or pricing.sub_price %}+${% endif %}
+                        {% if pricing.price %}{{ pricing.price|floatformat:2 }}{% endif %}
+                        {% if pricing.sub_price %} + ${{ pricing.sub_price|floatformat:2 }}{% endif %}
+                    </td>
+                </tr>
+                {% endif %}
+                
+                <!-- Drawer Side Panel -->
+                {% if drawer_sidepannel %}
+                <tr>
+                    <td>Drawer Side Panel</td>
+                    <td>{{ drawer_sidepannel.title }}{% if drawer_sidepannel.sub_title %} - {{ drawer_sidepannel.sub_title }}{% endif %}</td>
+                    <td class="option-price">
+                        {% if drawer_sidepannel.price or drawer_sidepannel.sub_price %}+${% endif %}
+                        {% if drawer_sidepannel.price %}{{ drawer_sidepannel.price|floatformat:2 }}{% endif %}
+                        {% if drawer_sidepannel.sub_price %} + ${{ drawer_sidepannel.sub_price|floatformat:2 }}{% endif %}
+                    </td>
+                </tr>
+                {% endif %}
+                
+                <!-- Seat -->
+                {% if seat %}
+                <tr>
+                    <td>Seat</td>
+                    <td>{{ seat.title }}{% if seat.sub_title %} - {{ seat.sub_title }}{% endif %}</td>
+                    <td class="option-price">
+                        {% if seat.price or seat.sub_price %}+${% endif %}
+                        {% if seat.price %}{{ seat.price|floatformat:2 }}{% endif %}
+                        {% if seat.sub_price %} + ${{ seat.sub_price|floatformat:2 }}{% endif %}
+                    </td>
+                </tr>
+                {% endif %}
+                
+                <!-- Decorative Hardware Finish -->
+                {% if decorative_hardware_finish %}
+                <tr>
+                    <td>Decorative Hardware Finish</td>
+                    <td>{{ decorative_hardware_finish.title }}{% if decorative_hardware_finish.sub_title %} - {{ decorative_hardware_finish.sub_title }}{% endif %}</td>
+                    <td class="option-price">
+                        {% if decorative_hardware_finish.price or decorative_hardware_finish.sub_price %}+${% endif %}
+                        {% if decorative_hardware_finish.price %}{{ decorative_hardware_finish.price|floatformat:2 }}{% endif %}
+                        {% if decorative_hardware_finish.sub_price %} + ${{ decorative_hardware_finish.sub_price|floatformat:2 }}{% endif %}
+                    </td>
+                </tr>
+                {% endif %}
+                
+                <!-- Decorative Hardware Style -->
+                {% if decorative_hardware_style %}
+                <tr>
+                    <td>Decorative Hardware Style</td>
+                    <td>{{ decorative_hardware_style.title }}{% if decorative_hardware_style.sub_title %} - {{ decorative_hardware_style.sub_title }}{% endif %}</td>
+                    <td class="option-price">
+                        {% if decorative_hardware_style.price or decorative_hardware_style.sub_price %}+${% endif %}
+                        {% if decorative_hardware_style.price %}{{ decorative_hardware_style.price|floatformat:2 }}{% endif %}
+                        {% if decorative_hardware_style.sub_price %} + ${{ decorative_hardware_style.sub_price|floatformat:2 }}{% endif %}
+                    </td>
+                </tr>
+                {% endif %}
+                
+                <!-- Top -->
+                {% if top %}
+                <tr>
+                    <td>Top</td>
+                    <td>{{ top.title }}{% if top.sub_title %} - {{ top.sub_title }}{% endif %}</td>
+                    <td class="option-price">
+                        {% if top.price or top.sub_price %}+${% endif %}
+                        {% if top.price %}{{ top.price|floatformat:2 }}{% endif %}
+                        {% if top.sub_price %} + ${{ top.sub_price|floatformat:2 }}{% endif %}
+                    </td>
+                </tr>
+                {% endif %}
+                
+                <!-- Optional Drawer & Side Panels Trim -->
+                {% if optional_drawer_side_panels_trim %}
+                <tr>
+                    <td>Optional Drawer & Side Panels Trim</td>
+                    <td>{{ optional_drawer_side_panels_trim.title }}{% if optional_drawer_side_panels_trim.sub_title %} - {{ optional_drawer_side_panels_trim.sub_title }}{% endif %}</td>
+                    <td class="option-price">
+                        {% if optional_drawer_side_panels_trim.price or optional_drawer_side_panels_trim.sub_price %}+${% endif %}
+                        {% if optional_drawer_side_panels_trim.price %}{{ optional_drawer_side_panels_trim.price|floatformat:2 }}{% endif %}
+                        {% if optional_drawer_side_panels_trim.sub_price %} + ${{ optional_drawer_side_panels_trim.sub_price|floatformat:2 }}{% endif %}
+                    </td>
+                </tr>
+                {% endif %}
+                
+                <!-- Grand Total -->
                 <tr class="total-row">
-                    <td colspan="2"><strong>Grand Total</strong></td>
-                    <td><strong>${{ grand_total|floatformat:2 }}</strong></td>
+                    <td colspan="2"><strong>Grand Total Investment</strong></td>
+                    <td class="option-price"><strong>${{ grand_total|floatformat:2 }}</strong></td>
                 </tr>
             </table>
             
-            <div style="margin-top: 30px; padding: 20px; background: #e7f3ff; border-left: 4px solid #007bff;">
-                <h3 style="margin-top: 0;">Next Steps</h3>
-                <p>Our team will contact you within 24 hours to confirm your selections and discuss delivery options.</p>
-                <p>This quote is valid for 30 days from the date of issue.</p>
+            <div style="margin-top: 30px; padding: 20px; background: #e7f3ff; border-left: 4px solid #000000;">
+                <h3 style="margin-top: 0; color: #000000;">Next Steps</h3>
+                <p>Our Marge Carson team will contact you within 24 hours to confirm your selections and discuss delivery options.</p>
+                <p>This custom furniture quote is valid for 30 days from the date of issue.</p>
             </div>
         </div>
         
-        
+        <div class="footer">
+            <p>Marge Carson Custom Furniture | Luxury Bespoke Furniture Design</p>
+            <p>© 2024 Marge Carson. All rights reserved.</p>
+        </div>
     </div>
 </body>
 </html>
