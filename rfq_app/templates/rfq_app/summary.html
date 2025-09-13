@@ -41,8 +41,8 @@
 
   <!-- Base Option -->
   {% if base_option %}
-    <p><strong>Base Option:</strong> {{ base_option.main_title }}{% if base_option.main_price %} (+${{ base_option.main_price|floatformat:2 }}){% endif %}
-      {% if base_option.sub_title %} - {{ base_option.sub_title }}{% if base_option.sub_price %} (+${{ base_option.sub_price|floatformat:2 }}){% endif %}{% endif %}
+    <p><strong>Base Option:</strong> {{ base_option.main_title }} {% if base_option.main_price %} (+${{ base_option.main_price|floatformat:2 }}){% endif %}
+      {% if base_option.sub_title %} - {{ base_option.sub_title }} {% if base_option.sub_price %} (+${{ base_option.sub_price|floatformat:2 }}){% endif %}{% endif %}
     </p>
   {% endif %}
 
@@ -111,7 +111,7 @@
 
   <!-- Decorative Hardware Style -->
   {% if decorative_hardware_style %}
-    <p><strong>Decorative Hardware Style:</strong> {{ decorative_hardware_style.main_title }{% if decorative_hardware_style.main_price %} (+${{ decorative_hardware_style.main_price|floatformat:2 }}){% endif %}
+    <p><strong>Decorative Hardware Style:</strong> {{ decorative_hardware_style.main_title }}{% if decorative_hardware_style.main_price %} (+${{ decorative_hardware_style.main_price|floatformat:2 }}){% endif %}
       {% if decorative_hardware_style.sub_title %} - {{ decorative_hardware_style.sub_title }}{% if decorative_hardware_style.sub_price %} (+${{ decorative_hardware_style.sub_price|floatformat:2 }}){% endif %}{% endif %}
     </p>
   {% endif %}
